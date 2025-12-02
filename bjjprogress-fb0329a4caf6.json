@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "bjjprogress",
+  "private_key_id": "fb0329a4caf6b9019e8aac8d593c08ea82acd93c",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDcqLsPzlgdtqSK\nGJnmpeKX7zHpIderngz4EmhCukA5zGJS9EmRn47fo42IAh+ZDu+XqDHwnuUH3/h/\n5t2EizgtQCD/TgY8I+RMQTdZVdqgh1VNFMP6nACh1bNPEN0oxwo7vTgda6g1ajtF\nnkYG2BdFNXzKlelo8WqFaw7ioLla/IwIFkprpO21uwZ80/otQO8aDFYmttEChEgr\nrwJKiB7QMowWaC/EFdDVOr/5XGZXP5HF6dspeAZfybMOOZgZk55aPOudqHnBVXR/\nwSx7a9DqwmqgzhWTiDrSthb4FMr81ay3VABnvFv2/CVjkQxj0YndMeE2F412Pfvr\n5awRWsenAgMBAAECggEAMzYNxAtVs/+xjENNZJRXVH+1C7BJB5F03RYYkHP9d+yR\nXUNI1706QXkJ3ejwQGuQ+5eTj46xBPTcDYMdIifVb9sUTWxkUgzabUAtglREm0EN\ncQhCu6T9GJIqPU1ippYbL+YoYducfFkdTHkBM5FvRSa2waWtOCffWvuPxtUab50C\n0cU9L1QVyJrhsZ5278D4vOyiL+An4yGeKl48zYDWDA1Wwu4layRXlCtomyL9bg40\nv0adea86yxcabspm6C8WxEdQDXCm39DueJdlPNiwt5xj9jTxHS3ORPSF9STUgFZI\nvSG3VFVCM7bSyQgg/lOCwrUroHcrH17euFyjwuK+MQKBgQD3aJNvzXD0nC3dUOR9\nJCds9S48mic/TdTn7jxvpD2GIq9Iz1lsWyP/lNJdN/KDqXWFKHFj49zexWv06ONR\ndUoN2JNyrNgcIbKM4B2vKKsK/3ITTCxZAKk+S8CoqdP4k1N2Bl4pu8+StBSFYnLL\nWcyX9P7w3QaVEL53UouOP4ybswKBgQDkUltRkfZaTeJ9N6WxG2nRWkQk/FAnYRxI\n2FqEt8ShAtKfz1+uWXbN19Y2R1yc8ndLXrOY9mvIvOe7SU7GPqliZm2VAI5Qwb1B\n4S5QlRGJJ3MFL2LmpjYUWNyshM5geuYSJOKCPw1LcyivdStqXlWUugyo0njTH52k\n3Dc09BCaPQKBgQC87bDZCaseQD2N6f3xyjAJNlmukZEy+D6DNhwUrPkGe2obUavZ\n4OdmfsD9yoF5JWjG3JFqVFEQFPZRuZ4NUGHSnPZL9c25/cmZZnOElKu45ES6k8qx\n1J1pIvPmWHm0MtzjHg2+FNt4Deg1y24Z92MTD1W3nTEvl++6suA7KjA3nQKBgEBa\nljKfmXhKi5QPozwQJftEHgDuvQjcbkR59smBooJfcU5p/OX/gWTzeQVDh+8UyFsO\nDkEG88pYtFgtiW6HKub5R9m/ll1cviNbfNppqc+mtty3RoEMSCHkCg72P9Uhzsc+\nbjmX2/9wLf+GXv5UKHsLFZZf/H5FYwGcsFLUl/lhAoGBAOXVjnLF6qJ9XkHboG3f\n9AETmX7jnXEBzUO+tEIZV3QBvlT2nBeKz5vBIn6xHnXxUd255DPfuoYfplIuE17f\nXUnDgfAzbtMuMQ2V05QmE3wbRx2vmrypbHqwOGlSPGnKRWXpv950v7/itwdbFQHQ\nfnOeJBbbUtFW0WLeOVl42su/\n-----END PRIVATE KEY-----\n",
+  "client_email": "bjj-upload@bjjprogress.iam.gserviceaccount.com",
+  "client_id": "108221292858143694844",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bjj-upload%40bjjprogress.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
