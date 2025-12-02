@@ -113,9 +113,13 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
   res.json({received: true});
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`[SERVER] Running on port ${PORT}`);
-});
+// Only start server if running locally (not in Vercel)
+if (process.env.VERCEL !== '1') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`[SERVER] Running on port ${PORT}`);
+  });
+}
 
+// Export for Vercel serverless
 module.exports = app;
