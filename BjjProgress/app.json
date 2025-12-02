@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "BjjProgress",
+    "slug": "BjjProgress",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/appicon.jpg",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hubertdomagala.bjjprogress",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.hubertdomagala.bjjprogress",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "16ad6fce-e62b-4dcc-83c7-582123aaedc7"
+      }
+    }
+  }
+}
