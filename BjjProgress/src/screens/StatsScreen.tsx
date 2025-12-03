@@ -6,7 +6,7 @@ import { databases, appwriteConfig, Query } from '../lib/appwrite';
 import { useAuth } from '../context/AuthContext';
 import { TrainingLog } from '../types';
 import { BarChart, PieChart } from 'react-native-gifted-charts';
-import { BarChart3, TrendingUp, Filter, ArrowLeft, LogOut } from 'lucide-react-native';
+import { BarChart3, TrendingUp, Filter, ArrowLeft, LogOut, Trophy, Medal } from 'lucide-react-native';
 import { StatNumber } from '../components/StatNumber';
 import { bjjColors } from '../constants/bjj-colors';
 import { getSparringsForTraining } from '../lib/sparring';
@@ -18,7 +18,7 @@ import { checkSubscription, isTrialExpired } from '../utils/subscription';
 
 
 type TimeRange = 'WEEK' | 'MONTH' | 'YEAR';
-type TrainingType = 'ALL' | 'GI' | 'NO-GI';
+type TrainingType = 'ALL' | 'GI' | 'NO-GI' | 'COMP';
 
 interface SubmissionEvent {
   type: 'given' | 'received';
@@ -331,6 +331,29 @@ export default function StatsScreen() {
       }
     });
 
+    // Calculate competition stats
+    let goldCount = 0;
+    let silverCount = 0;
+    let bronzeCount = 0;
+    let compWins = 0;
+    let compLosses = 0;
+    let compDraws = 0;
+
+    relevantSparring.forEach(s => {
+      if (s.is_competition_match) {
+        if (s.result === 'win') {
+          compWins++;
+          if (s.stage === 'final') goldCount++;
+          if (s.stage === 'bronze_match') bronzeCount++; // Assuming bronze match win = bronze
+        } else if (s.result === 'loss') {
+          compLosses++;
+          if (s.stage === 'final') silverCount++;
+        } else if (s.result === 'draw') {
+          compDraws++;
+        }
+      }
+    });
+
     return {
       totalDuration,
       winRate,
@@ -343,6 +366,13 @@ export default function StatsScreen() {
       trialDaysRemaining,
       submissionsGivenByTechnique,
       submissionsReceivedByTechnique,
+      // Competition Stats
+      goldCount,
+      silverCount,
+      bronzeCount,
+      compWins,
+      compLosses,
+      compDraws,
     };
   }, [filteredLogs, sparringData, user]);
 
@@ -460,9 +490,9 @@ export default function StatsScreen() {
           ))}
         </View>
 
-        {/* GI / NO-GI Filter */}
+        {/* GI / NO-GI / COMP Filter */}
         <View className="flex-row bg-white/5 p-1 rounded-2xl mb-6 border border-white/10">
-          {(['ALL', 'GI', 'NO-GI'] as TrainingType[]).map((type) => (
+          {(['ALL', 'GI', 'NO-GI', 'COMP'] as TrainingType[]).map((type) => (
             <TouchableOpacity
               key={type}
               onPress={() => setTrainingType(type)}
@@ -473,7 +503,7 @@ export default function StatsScreen() {
               <Text className={`font-lato-bold text-xs ${
                 trainingType === type ? 'text-white' : 'text-gray-400'
               }`}>
-                {type}
+                {type === 'COMP' ? 'COMP' : type}
               </Text>
             </TouchableOpacity>
           ))}
@@ -485,6 +515,50 @@ export default function StatsScreen() {
           </View>
         ) : (
           <View className="pb-8">
+            {/* Competition Mode: Medal Case & Stats */}
+            {trainingType === 'COMP' && (
+              <View className="mb-8">
+                <Text className="text-yellow-400 font-bebas text-2xl mb-4 tracking-wider">🏆 MEDAL CASE</Text>
+                
+                {/* Medals Row */}
+                <View className="flex-row justify-between mb-6 bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <View className="items-center flex-1">
+                    <Medal size={40} color="#eab308" />
+                    <Text className="text-yellow-400 font-bebas text-3xl mt-2">{stats.goldCount}</Text>
+                    <Text className="text-gray-500 text-[10px] font-inter-bold uppercase">GOLD</Text>
+                  </View>
+                  <View className="w-[1px] bg-white/10" />
+                  <View className="items-center flex-1">
+                    <Medal size={40} color="#94a3b8" />
+                    <Text className="text-gray-300 font-bebas text-3xl mt-2">{stats.silverCount}</Text>
+                    <Text className="text-gray-500 text-[10px] font-inter-bold uppercase">SILVER</Text>
+                  </View>
+                  <View className="w-[1px] bg-white/10" />
+                  <View className="items-center flex-1">
+                    <Medal size={40} color="#b45309" />
+                    <Text className="text-amber-700 font-bebas text-3xl mt-2">{stats.bronzeCount}</Text>
+                    <Text className="text-gray-500 text-[10px] font-inter-bold uppercase">BRONZE</Text>
+                  </View>
+                </View>
+
+                {/* Win/Loss Record */}
+                <View className="flex-row gap-3">
+                  <View className="flex-1 bg-green-500/10 border border-green-500/20 rounded-2xl p-4 items-center">
+                    <Text className="text-green-400 font-bebas text-4xl">{stats.compWins}</Text>
+                    <Text className="text-gray-400 text-xs font-lato-bold">WINS</Text>
+                  </View>
+                  <View className="flex-1 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 items-center">
+                    <Text className="text-red-400 font-bebas text-4xl">{stats.compLosses}</Text>
+                    <Text className="text-gray-400 text-xs font-lato-bold">LOSSES</Text>
+                  </View>
+                  <View className="flex-1 bg-gray-500/10 border border-gray-500/20 rounded-2xl p-4 items-center">
+                    <Text className="text-gray-400 font-bebas text-4xl">{stats.compDraws}</Text>
+                    <Text className="text-gray-500 text-xs font-lato-bold">DRAWS</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             {/* Overview Cards - Clean 5-Tile Layout */}
             <View className="mb-6">
               {/* Training Summary - Giant Number */}
@@ -547,7 +621,9 @@ export default function StatsScreen() {
 
             {/* Submission Analysis - Technique Breakdown */}
             {(Object.keys(stats.submissionsGivenByTechnique).length > 0 || Object.keys(stats.submissionsReceivedByTechnique).length > 0) && (
-              <View className="flex-row gap-3 mb-6">
+              <View className="mb-6">
+                <Text className="text-white font-bebas text-2xl mb-4 tracking-wider">🥋 SUBMISSION STATISTICS</Text>
+                <View className="flex-row gap-3">
                 {/* Submissions Given Analysis */}
                 <View className="flex-1 bg-[#1e293b] rounded-2xl p-5 border border-white/5">
                   <Text className="text-green-400 font-lato-bold text-xs mb-4">MY SUBMISSIONS</Text>
@@ -562,7 +638,7 @@ export default function StatsScreen() {
                               const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
                               return {
                                 value: count,
-                                color: colors[index],
+                                color: colors[index % colors.length],
                                 text: count.toString(),
                               };
                             })}
@@ -584,7 +660,7 @@ export default function StatsScreen() {
                               <View key={technique} className="flex-row items-center justify-between py-1">
                                 <View className="flex-row items-center flex-1">
                                   <View 
-                                    style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: colors[index], marginRight: 8 }}
+                                    style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: colors[index % colors.length], marginRight: 8 }}
                                   />
                                   <Text className="text-white font-lato text-sm flex-1" numberOfLines={1}>{technique}</Text>
                                 </View>
@@ -649,8 +725,112 @@ export default function StatsScreen() {
                     <Text className="text-gray-500 text-center font-lato text-sm py-4">No submissions received yet</Text>
                   )}
                 </View>
+                </View>
               </View>
             )}
+
+            {/* Sweep Statistics - Guard Usage Pie Charts */}
+            <View className="mb-6">
+              <Text className="text-white font-bebas text-2xl mb-4 tracking-wider">🥋 SWEEP STATISTICS</Text>
+              
+              <View className="flex-row gap-3">
+                {/* Sweeps I Gave (Guards I Use) */}
+                <View className="flex-1 bg-[#1e293b] rounded-2xl p-5 border border-white/5">
+                  <Text className="text-green-400 font-lato-bold text-xs mb-4">MY SWEEPS</Text>
+                  {sweepGuardStats.some(s => s.given > 0) ? (
+                    <>
+                      <View className="items-center mb-3">
+                        <PieChart
+                          data={sweepGuardStats
+                            .filter(s => s.given > 0)
+                            .slice(0, 6)
+                            .map((stat, index) => {
+                              const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6'];
+                              return {
+                                value: stat.given,
+                                color: colors[index % colors.length],
+                              };
+                            })}
+                          radius={50}
+                          textColor="#fff"
+                          textSize={12}
+                          fontWeight="bold"
+                        />
+                      </View>
+                      <View className="space-y-2">
+                        {sweepGuardStats
+                          .filter(s => s.given > 0)
+                          .slice(0, 6)
+                          .map((stat, index) => {
+                            const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6'];
+                            return (
+                              <View key={stat.guard} className="flex-row items-center justify-between py-1">
+                                <View className="flex-row items-center flex-1">
+                                  <View 
+                                    style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: colors[index % colors.length], marginRight: 8 }}
+                                  />
+                                  <Text className="text-white font-lato text-sm flex-1" numberOfLines={1}>{stat.guard}</Text>
+                                </View>
+                                <Text className="text-gray-400 font-lato-bold text-sm ml-2">{stat.given}</Text>
+                              </View>
+                            );
+                          })}
+                      </View>
+                    </>
+                  ) : (
+                    <Text className="text-gray-500 text-center font-lato text-sm py-4">No sweeps tracked yet</Text>
+                  )}
+                </View>
+
+                {/* Sweeps Opponent Gave (Where I Got Swept) */}
+                <View className="flex-1 bg-[#1e293b] rounded-2xl p-5 border border-white/5">
+                  <Text className="text-red-400 font-lato-bold text-xs mb-4">GOT SWEPT FROM</Text>
+                  {sweepGuardStats.some(s => s.received > 0) ? (
+                    <>
+                      <View className="items-center mb-3">
+                        <PieChart
+                          data={sweepGuardStats
+                            .filter(s => s.received > 0)
+                            .slice(0, 6)
+                            .map((stat, index) => {
+                              const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
+                              return {
+                                value: stat.received,
+                                color: colors[index % colors.length],
+                              };
+                            })}
+                          radius={50}
+                          textColor="#fff"
+                          textSize={12}
+                          fontWeight="bold"
+                        />
+                      </View>
+                      <View className="space-y-2">
+                        {sweepGuardStats
+                          .filter(s => s.received > 0)
+                          .slice(0, 6)
+                          .map((stat, index) => {
+                            const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
+                            return (
+                              <View key={stat.guard} className="flex-row items-center justify-between py-1">
+                                <View className="flex-row items-center flex-1">
+                                  <View 
+                                    style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: colors[index % colors.length], marginRight: 8 }}
+                                  />
+                                  <Text className="text-white font-lato text-sm flex-1" numberOfLines={1}>{stat.guard}</Text>
+                                </View>
+                                <Text className="text-gray-400 font-lato-bold text-sm ml-2">{stat.received}</Text>
+                              </View>
+                            );
+                          })}
+                      </View>
+                    </>
+                  ) : (
+                    <Text className="text-gray-500 text-center font-lato text-sm py-4">No sweeps received yet</Text>
+                  )}
+                </View>
+              </View>
+            </View>
 
             {/* Submission Stats - Side by Side Pie Charts */}
             {(stats.totalSubsGiven > 0 || stats.totalSubsReceived > 0) && (
@@ -705,115 +885,10 @@ export default function StatsScreen() {
               </View>
              )}
 
-            {/* Sweep Statistics - Guard Usage Pie Charts */}
-            {sweepGuardStats.length > 0 && (
-              <View className="mb-6">
-                <Text className="text-white font-bebas text-2xl mb-4 tracking-wider">🥋 SWEEP STATISTICS</Text>
-                
-                <View className="flex-row gap-3">
-                  {/* Sweeps I Gave (Guards I Use) */}
-                  <View className="flex-1 bg-[#1e293b] rounded-2xl p-5 border border-white/5">
-                    <Text className="text-green-400 font-lato-bold text-xs mb-4">MY SWEEPS</Text>
-                    {sweepGuardStats.some(s => s.given > 0) ? (
-                      <>
-                        <View className="items-center mb-3">
-                          <PieChart
-                            data={sweepGuardStats
-                              .filter(s => s.given > 0)
-                              .slice(0, 6)
-                              .map((stat, index) => {
-                                const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6'];
-                                return {
-                                  value: stat.given,
-                                  color: colors[index],
-                                };
-                              })}
-                            radius={50}
-                            textColor="#fff"
-                            textSize={12}
-                            fontWeight="bold"
-                          />
-                        </View>
-                        <View className="space-y-2">
-                          {sweepGuardStats
-                            .filter(s => s.given > 0)
-                            .slice(0, 6)
-                            .map((stat, index) => {
-                              const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#14b8a6'];
-                              return (
-                                <View key={stat.guard} className="flex-row items-center justify-between py-1">
-                                  <View className="flex-row items-center flex-1">
-                                    <View 
-                                      style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: colors[index], marginRight: 8 }}
-                                    />
-                                    <Text className="text-white font-lato text-sm flex-1" numberOfLines={1}>{stat.guard}</Text>
-                                  </View>
-                                  <Text className="text-gray-400 font-lato-bold text-sm ml-2">{stat.given}</Text>
-                                </View>
-                              );
-                            })}
-                        </View>
-                      </>
-                    ) : (
-                      <Text className="text-gray-500 text-center font-lato text-sm py-4">No sweeps tracked yet</Text>
-                    )}
-                  </View>
-
-                  {/* Sweeps Opponent Gave (Where I Got Swept) */}
-                  <View className="flex-1 bg-[#1e293b] rounded-2xl p-5 border border-white/5">
-                    <Text className="text-red-400 font-lato-bold text-xs mb-4">GOT SWEPT FROM</Text>
-                    {sweepGuardStats.some(s => s.received > 0) ? (
-                      <>
-                        <View className="items-center mb-3">
-                          <PieChart
-                            data={sweepGuardStats
-                              .filter(s => s.received > 0)
-                              .slice(0, 6)
-                              .map((stat, index) => {
-                                const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
-                                return {
-                                  value: stat.received,
-                                  color: colors[index],
-                                };
-                              })}
-                            radius={50}
-                            textColor="#fff"
-                            textSize={12}
-                            fontWeight="bold"
-                          />
-                        </View>
-                        <View className="space-y-2">
-                          {sweepGuardStats
-                            .filter(s => s.received > 0)
-                            .slice(0, 6)
-                            .map((stat, index) => {
-                              const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
-                              return (
-                                <View key={stat.guard} className="flex-row items-center justify-between py-1">
-                                  <View className="flex-row items-center flex-1">
-                                    <View 
-                                      style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: colors[index], marginRight: 8 }}
-                                    />
-                                    <Text className="text-white font-lato text-sm flex-1" numberOfLines={1}>{stat.guard}</Text>
-                                  </View>
-                                  <Text className="text-gray-400 font-lato-bold text-sm ml-2">{stat.received}</Text>
-                                </View>
-                              );
-                            })}
-                        </View>
-                      </>
-                    ) : (
-                      <Text className="text-gray-500 text-center font-lato text-sm py-4">No sweeps received yet</Text>
-                    )}
-                  </View>
-                </View>
-              </View>
-            )}
-
             {/* Position Statistics - IBJJF Points */}
             {positionStats.length > 0 && (
               <View className="mb-6">
-                <Text className="text-white font-bebas text-2xl mb-4 tracking-wider">🏆 POSITION STATISTICS</Text>
+                <Text className="text-white font-bebas text-2xl mb-4 tracking-wider">🥋 POSITION STATISTICS</Text>
                 
                 <View className="flex-row gap-3">
                   {/* My Positions */}

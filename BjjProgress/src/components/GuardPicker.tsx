@@ -23,9 +23,12 @@ export const GuardPicker: React.FC<GuardPickerProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   
-  const guards = type === 'bottom' ? BOTTOM_GUARDS : TOP_POSITIONS;
+  // Combine all guards for search, but prioritize relevant ones based on type if needed.
+  // User requested "all sweeps options inside got sweept", so we simply combine them.
+  // We can remove duplicates if any (though currently they seem distinct).
+  const allGuards = Array.from(new Set([...BOTTOM_GUARDS, ...TOP_POSITIONS]));
   
-  const filteredGuards = guards.filter(guard =>
+  const filteredGuards = allGuards.filter(guard =>
     guard.toLowerCase().includes(searchQuery.toLowerCase())
   );
 

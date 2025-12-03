@@ -39,7 +39,7 @@ export default function PaywallScreen({ navigation }: Props) {
       console.log('Backend URL:', BACKEND_URL);
       
       // 1. Create payment intent on your backend
-      const response = await fetch(`${BACKEND_URL}/create-subscription`, {
+      const response = await fetch('https://bjjprogress-backend-fsbco10c4-hubinis-projects.vercel.app/create-subscription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -244,8 +244,21 @@ export default function PaywallScreen({ navigation }: Props) {
         <Text className="text-gray-500 text-xs text-center mt-4">
           By subscribing you agree to our Terms & Privacy Policy
         </Text>
+        
+        {/* Restore Purchases - Required for App Store */}
+        <TouchableOpacity 
+          onPress={() => {
+            Alert.alert('Restore Purchases', 'To restore your purchase, please contact support with your receipt.');
+          }}
+          className="mt-4"
+        >
+          <Text className="text-gray-400 text-center font-lato text-sm underline">
+            Restore Purchases
+          </Text>
+        </TouchableOpacity>
+
         {/* Support Link */}
-        <TouchableOpacity onPress={handleContactSupport} className="mb-12">
+        <TouchableOpacity onPress={handleContactSupport} className="mb-12 mt-4">
           <Text className="text-purple-400 text-center font-lato">
             Questions? Contact Support →
           </Text>

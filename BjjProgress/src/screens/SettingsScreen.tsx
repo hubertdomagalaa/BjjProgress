@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { BeltDisplay } from '../components/BeltDisplay';
@@ -13,7 +13,7 @@ import { RootStackParamList } from '../types';
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export default function SettingsScreen({ navigation }: Props) {
-  const { user } = useAuth();
+  const { user, deleteAccount } = useAuth();
   const [belt, setBelt] = useState<BeltLevel>('white');
   const [stripes, setStripes] = useState<Stripes>(0);
   const [saving, setSaving] = useState(false);
@@ -136,7 +136,7 @@ export default function SettingsScreen({ navigation }: Props) {
           <TouchableOpacity
             onPress={saveBelt}
             disabled={saving}
-            className={`p-4 rounded-xl items-center ${
+            className={`p-4 rounded-xl items-center mb-8 ${
               saving ? 'bg-purple-500/50' : 'bg-purple-500'
             }`}
             activeOpacity={0.7}
@@ -145,6 +145,70 @@ export default function SettingsScreen({ navigation }: Props) {
               {saving ? 'Saving...' : 'Save Belt'}
             </Text>
           </TouchableOpacity>
+
+          {/* Legal Section */}
+          <View className="mb-8">
+            <Text className="text-gray-400 font-inter-medium text-sm mb-3 ml-1">
+              Legal
+            </Text>
+            <View className="bg-dark-card rounded-xl overflow-hidden">
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://bjjprogress-backend-fsbco10c4-hubinis-projects.vercel.app/privacy')}
+                className="p-4 border-b border-gray-700/50 flex-row justify-between items-center"
+              >
+                <Text className="text-white font-inter">Privacy Policy</Text>
+                <ArrowLeft size={16} color="#6B7280" style={{ transform: [{ rotate: '180deg' }] }} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://bjjprogress-backend-fsbco10c4-hubinis-projects.vercel.app/terms')}
+                className="p-4 flex-row justify-between items-center"
+              >
+                <Text className="text-white font-inter">Terms of Service</Text>
+                <ArrowLeft size={16} color="#6B7280" style={{ transform: [{ rotate: '180deg' }] }} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Danger Zone */}
+          <View className="border-t border-gray-800 pt-6 mb-10">
+            <Text className="text-red-500 font-inter-bold text-sm mb-4 uppercase tracking-wider">
+              Danger Zone
+            </Text>
+            
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  'Delete Account',
+                  'Are you sure you want to delete your account? This action cannot be undone and all your data will be lost.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                      text: 'Delete', 
+                      style: 'destructive',
+                      onPress: async () => {
+                        try {
+                          await deleteAccount();
+                          // Navigation to Welcome is handled by AuthContext state change or we can force it
+                          navigation.reset({
+                            index: 0,
+                            routes: [{ name: 'Welcome' }],
+                          });
+                        } catch (error) {
+                          Alert.alert('Error', 'Failed to delete account');
+                        }
+                      }
+                    }
+                  ]
+                );
+              }}
+              className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl items-center"
+              activeOpacity={0.7}
+            >
+              <Text className="text-red-500 font-inter-bold text-base">
+                Delete Account
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

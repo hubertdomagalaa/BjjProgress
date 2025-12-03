@@ -1,0 +1,34 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "success": "Success",
+    "error": "Error",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save",
+    "logout": "Logout",
+    "settings": "Settings"
+  },
+  "home": {
+    "title": "MY TRAININGS",
+    "add": "+ Add",
+    "pro_active": "PRO ACTIVE",
+    "trial_active": "🎁 Trial: {{days}} day{{plural}} left",
+    "trial_message": "Enjoying BJJ Progress? Upgrade to keep tracking!",
+    "upgrade_to_pro": "Upgrade to PRO",
+    "unlimited_tracking": "Unlimited Tracking",
+    "recommended": "RECOMMENDED",
+    "unlimited_desc": "Unlimited tracking, advanced stats & more.",
+    "upgrade_btn": "Upgrade",
+    "pull_to_refresh": "Pull to refresh",
+    "no_trainings": "No trainings yet",
+    "add_first": "Add your first training!",
+    "duration": "DURATION",
+    "min": "min",
+    "delete_title": "Delete Training",
+    "delete_confirm": "Delete this {{type}} training from {{date}}?",
+    "delete_success": "Training deleted",
+    "delete_error": "Failed to delete training"
+  }
+}

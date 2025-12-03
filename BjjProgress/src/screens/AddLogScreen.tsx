@@ -8,7 +8,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TrainingLog } from '../types';
 import SparringTile from '../components/SparringTile';
 import { createSparring, getSparringsForTraining, updateSparring, deleteSparring, deleteAllSparringsForTraining, SparringSession } from '../lib/sparring';
-import { Calendar, Clock, FileText, Shield, Zap, CheckCircle, ArrowLeft } from 'lucide-react-native';
+import MatchTile from '../components/MatchTile';
+import { Trophy, MapPin, Scale, Shield, Zap, Calendar, Clock, FileText, CheckCircle, ArrowLeft } from 'lucide-react-native';
 import { haptics } from '../utils/haptics';
 import { shadows } from '../styles/shadows';
 import { checkSubscription } from '../utils/subscription';
@@ -22,6 +23,10 @@ type FormData = {
   type: string;
   notes: string;
   reflection: string;
+  tournament_name?: string;
+  weight_class?: string;
+  location?: string;
+  competition_style?: 'GI' | 'NO-GI';
 };
 
 export default function AddLogScreen({ navigation, route }: Props) {
@@ -41,7 +46,8 @@ export default function AddLogScreen({ navigation, route }: Props) {
 
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [isGi, setIsGi] = useState(true);
+  const [trainingType, setTrainingType] = useState<'GI' | 'NO-GI' | 'COMP'>('GI');
+  const [competitionStyle, setCompetitionStyle] = useState<'GI' | 'NO-GI'>('GI');
   const [sparringSessions, setSparringSessions] = useState<Omit<SparringSession, 'training_log_id'>[]>([]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
@@ -55,9 +61,16 @@ export default function AddLogScreen({ navigation, route }: Props) {
         type: logToEdit.type,
         notes: logToEdit.notes,
         reflection: logToEdit.reflection,
+        tournament_name: logToEdit.tournament_name,
+        weight_class: logToEdit.weight_class,
+        location: logToEdit.location,
+        competition_style: logToEdit.competition_style,
       });
-      setIsGi(logToEdit.type === 'GI');
-      navigation.setOptions({ title: 'Edit Training' });
+      setTrainingType(logToEdit.type as any);
+      if (logToEdit.competition_style) {
+        setCompetitionStyle(logToEdit.competition_style as 'GI' | 'NO-GI');
+      }
+      navigation.setOptions({ title: logToEdit.type === 'COMP' ? 'Edit Competition' : 'Edit Training' });
       
       // Load sparring sessions for this training
       loadSparringSessions(logToEdit.$id!);
@@ -77,6 +90,13 @@ export default function AddLogScreen({ navigation, route }: Props) {
         positions_list: s.positions_list,
         notes: s.notes,
         partner_name: s.partner_name,
+        // Competition fields
+        is_competition_match: s.is_competition_match,
+        result: s.result,
+        method: s.method,
+        points_my: s.points_my,
+        points_opp: s.points_opp,
+        stage: s.stage,
       })));
     } catch (error) {
       console.error('Error loading sparring sessions:', error);
@@ -93,6 +113,12 @@ export default function AddLogScreen({ navigation, route }: Props) {
       positions_list: '[]',
       notes: '',
       partner_name: '',
+      is_competition_match: trainingType === 'COMP',
+      result: undefined,
+      method: undefined,
+      points_my: 0,
+      points_opp: 0,
+      stage: undefined,
     }]);
   };
 
@@ -121,11 +147,15 @@ export default function AddLogScreen({ navigation, route }: Props) {
         user_id: user.$id,
         date: dateTime.toISOString(),
         duration: parseInt(data.duration),
-        type: isGi ? 'GI' : 'NO-GI',
+        type: trainingType,
         notes: data.notes,
         reflection: data.reflection,
         submission_given: 0,
         submission_received: 0,
+        tournament_name: data.tournament_name,
+        weight_class: data.weight_class,
+        location: data.location,
+        competition_style: trainingType === 'COMP' ? competitionStyle : undefined,
       };
 
       let trainingId: string;
@@ -152,6 +182,8 @@ export default function AddLogScreen({ navigation, route }: Props) {
       }
 
       // Save sparring sessions
+      // First, if editing, we already deleted old sessions above.
+      // Now create all current sessions as new documents.
       for (const session of sparringSessions) {
         await createSparring({
           training_log_id: trainingId,
@@ -161,7 +193,21 @@ export default function AddLogScreen({ navigation, route }: Props) {
           submissions_list: typeof session.submissions_list === 'string' 
             ? session.submissions_list 
             : JSON.stringify(session.submissions_list || []),
+          sweeps_list: typeof session.sweeps_list === 'string'
+            ? session.sweeps_list
+            : JSON.stringify(session.sweeps_list || []),
+          positions_list: typeof session.positions_list === 'string'
+            ? session.positions_list
+            : JSON.stringify(session.positions_list || []),
           notes: session.notes || '',
+          partner_name: session.partner_name || '', // Ensure partner name is saved
+          is_competition_match: trainingType === 'COMP',
+          result: session.result,
+          method: session.method,
+          points_my: session.points_my,
+          points_opp: session.points_opp,
+          stage: session.stage,
+          submission_technique: session.submission_technique,
         });
       }
 
@@ -204,42 +250,86 @@ export default function AddLogScreen({ navigation, route }: Props) {
         className="flex-1 bg-dark-bg"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 150 }}
       >
       <View className="p-4">
         {/* Training Type Toggle - Premium Redesign */}
-        <View className="mb-8 flex-row gap-4">
+        <View className="mb-8 flex-row gap-3">
           <TouchableOpacity
-            onPress={() => setIsGi(true)}
-            className={`flex-1 p-4 rounded-2xl items-center justify-center border ${
-              isGi 
+            onPress={() => setTrainingType('GI')}
+            className={`flex-1 p-3 rounded-2xl items-center justify-center border ${
+              trainingType === 'GI' 
                 ? 'bg-blue-600/20 border-blue-500' 
                 : 'bg-white/5 border-white/10'
             }`}
-            style={{ height: 120 }}
+            style={{ height: 100 }}
           >
-            <Shield size={40} color={isGi ? '#60a5fa' : '#64748b'} />
-            <Text className={`mt-3 font-montserrat font-bold text-lg ${isGi ? 'text-blue-400' : 'text-gray-500'}`}>
+            <Shield size={32} color={trainingType === 'GI' ? '#60a5fa' : '#64748b'} />
+            <Text className={`mt-2 font-montserrat font-bold text-sm ${trainingType === 'GI' ? 'text-blue-400' : 'text-gray-500'}`}>
               GI
             </Text>
-            {isGi && <View className="absolute top-3 right-3 w-2 h-2 rounded-full bg-blue-400" />}
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => setIsGi(false)}
-            className={`flex-1 p-4 rounded-2xl items-center justify-center border ${
-              !isGi 
+            onPress={() => setTrainingType('NO-GI')}
+            className={`flex-1 p-3 rounded-2xl items-center justify-center border ${
+              trainingType === 'NO-GI' 
                 ? 'bg-orange-600/20 border-orange-500' 
                 : 'bg-white/5 border-white/10'
             }`}
-            style={{ height: 120 }}
+            style={{ height: 100 }}
           >
-            <Zap size={40} color={!isGi ? '#fb923c' : '#64748b'} />
-            <Text className={`mt-3 font-montserrat font-bold text-lg ${!isGi ? 'text-orange-400' : 'text-gray-500'}`}>
+            <Zap size={32} color={trainingType === 'NO-GI' ? '#fb923c' : '#64748b'} />
+            <Text className={`mt-2 font-montserrat font-bold text-sm ${trainingType === 'NO-GI' ? 'text-orange-400' : 'text-gray-500'}`}>
               NO-GI
             </Text>
-            {!isGi && <View className="absolute top-3 right-3 w-2 h-2 rounded-full bg-orange-400" />}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setTrainingType('COMP')}
+            className={`flex-1 p-3 rounded-2xl items-center justify-center border ${
+              trainingType === 'COMP' 
+                ? 'bg-yellow-500/20 border-yellow-500' 
+                : 'bg-white/5 border-white/10'
+            }`}
+            style={{ height: 100 }}
+          >
+            <Trophy size={32} color={trainingType === 'COMP' ? '#eab308' : '#64748b'} />
+            <Text className={`mt-2 font-montserrat font-bold text-sm ${trainingType === 'COMP' ? 'text-yellow-400' : 'text-gray-500'}`}>
+              COMP
+            </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Competition Style Toggle (Gi vs No-Gi) */}
+        {trainingType === 'COMP' && (
+          <View className="mb-6 flex-row bg-white/5 p-1 rounded-xl border border-white/10">
+            <TouchableOpacity
+              onPress={() => setCompetitionStyle('GI')}
+              className={`flex-1 py-2 rounded-lg items-center ${
+                competitionStyle === 'GI' ? 'bg-blue-600' : ''
+              }`}
+            >
+              <Text className={`font-lato-bold text-sm ${
+                competitionStyle === 'GI' ? 'text-white' : 'text-gray-400'
+              }`}>
+                GI
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setCompetitionStyle('NO-GI')}
+              className={`flex-1 py-2 rounded-lg items-center ${
+                competitionStyle === 'NO-GI' ? 'bg-orange-600' : ''
+              }`}
+            >
+              <Text className={`font-lato-bold text-sm ${
+                competitionStyle === 'NO-GI' ? 'text-white' : 'text-gray-400'
+              }`}>
+                NO-GI
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
           {/* Date & Time Section - Glassmorphic Inputs */}
         <View className="mb-6">
           <View className="flex-row gap-4 mb-4">
@@ -286,27 +376,29 @@ export default function AddLogScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          <View>
-            <Text className="text-gray-400 font-lato text-xs mb-2 ml-1">DURATION (MIN)</Text>
-            <View className="flex-row items-center bg-white/5 border border-white/10 rounded-xl px-4 py-3.5">
-              <Clock size={18} color="#94a3b8" style={{ marginRight: 10 }} />
-              <Controller
-                control={control}
-                name="duration"
-                rules={{ required: true }}
-                render={({ field: { onChange, value } }) => (
-                  <TextInput
-                    className="flex-1 text-white font-lato text-base"
-                    value={value}
-                    onChangeText={onChange}
-                    keyboardType="numeric"
-                    placeholder="90"
-                    placeholderTextColor="#64748b"
-                  />
-                )}
-              />
+          {trainingType !== 'COMP' && (
+            <View>
+              <Text className="text-gray-400 font-lato text-xs mb-2 ml-1">DURATION (MIN)</Text>
+              <View className="flex-row items-center bg-white/5 border border-white/10 rounded-xl px-4 py-3.5">
+                <Clock size={18} color="#94a3b8" style={{ marginRight: 10 }} />
+                <Controller
+                  control={control}
+                  name="duration"
+                  rules={{ required: true }}
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      className="flex-1 text-white font-lato text-base"
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="numeric"
+                      placeholder="90"
+                      placeholderTextColor="#64748b"
+                    />
+                  )}
+                />
+              </View>
             </View>
-          </View>
+          )}
         </View>
 
 
@@ -326,7 +418,8 @@ export default function AddLogScreen({ navigation, route }: Props) {
               textAlignVertical="top"
               placeholder="What did you work on today?"
               placeholderTextColor="#9ca3af"
-              style={{ minHeight: 150 }}
+              scrollEnabled={false} // Fix for Android scroll issue
+              style={{ minHeight: 200 }}
             />
           )}
         />
@@ -348,16 +441,19 @@ export default function AddLogScreen({ navigation, route }: Props) {
               textAlignVertical="top"
               placeholder="What went well? What to improve?"
               placeholderTextColor="#9ca3af"
-              style={{ minHeight: 150 }}
+              scrollEnabled={false} // Fix for Android scroll issue
+              style={{ minHeight: 200 }}
           />
           )}
         />
       </View>
 
-      {/* Sparrings Section */}
+      {/* Sparrings / Matches Section */}
       <View className="mb-6">
         <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-[#fefcfe] text-xl font-lato-bold">💪 Sparrings</Text>
+          <Text className="text-[#fefcfe] text-xl font-lato-bold">
+            {trainingType === 'COMP' ? '🏆 Matches' : '💪 Sparrings'}
+          </Text>
           <TouchableOpacity
             onPress={() => {
               // Check if user has access (PRO or active trial)
@@ -384,46 +480,69 @@ export default function AddLogScreen({ navigation, route }: Props) {
             disabled={!checkSubscription(user?.prefs).hasAccess}
           >
             <Text className="text-white font-lato-bold">
-              {checkSubscription(user?.prefs).hasAccess ? '+ Add Sparring' : '+ Add Sparring (PRO)'}
+              {checkSubscription(user?.prefs).hasAccess 
+                ? (trainingType === 'COMP' ? '+ Add Match' : '+ Add Sparring') 
+                : '+ Add (PRO)'}
             </Text>
           </TouchableOpacity>
         </View>
 
         {sparringSessions.map((session, index) => (
-          <SparringTile
-            key={index}
-            number={session.sparring_number}
-            submissionGiven={session.submission_given}
-            submissionReceived={session.submission_received}
-            submissionsList={typeof session.submissions_list === 'string' 
-              ? JSON.parse(session.submissions_list || '[]') 
-              : session.submissions_list || []}
-            notes={session.notes}
-            partner_name={session.partner_name}
-            sweeps_list={session.sweeps_list}
-            positions_list={session.positions_list}
-            onUpdate={(updates) => {
-              // Handle submissionsList format correctly
-              const formattedUpdates: any = { ...updates };
-              
-              if (updates.submissionsList !== undefined) {
-                formattedUpdates.submissions_list = 
-                  typeof updates.submissionsList === 'string'
-                    ? updates.submissionsList
-                    : JSON.stringify(updates.submissionsList || []);
-                delete formattedUpdates.submissionsList;
-              }
-              
-              updateSparringSession(index, formattedUpdates);
-            }}
-            onDelete={() => deleteSparringSession(index)}
-          />
+          trainingType === 'COMP' ? (
+            <MatchTile
+              key={index}
+              number={session.sparring_number}
+              result={session.result}
+              method={session.method}
+              points_my={session.points_my}
+              points_opp={session.points_opp}
+              stage={session.stage}
+              notes={session.notes}
+              submissions_list={typeof session.submissions_list === 'string' ? session.submissions_list : JSON.stringify(session.submissions_list || [])}
+              sweeps_list={typeof session.sweeps_list === 'string' ? session.sweeps_list : JSON.stringify(session.sweeps_list || [])}
+              onUpdate={(updates) => updateSparringSession(index, updates)}
+              onDelete={() => deleteSparringSession(index)}
+            />
+          ) : (
+            <SparringTile
+              key={index}
+              number={session.sparring_number}
+              submissionGiven={session.submission_given}
+              submissionReceived={session.submission_received}
+              submissionsList={typeof session.submissions_list === 'string' 
+                ? JSON.parse(session.submissions_list || '[]') 
+                : session.submissions_list || []}
+              notes={session.notes}
+              partner_name={session.partner_name}
+              sweeps_list={session.sweeps_list}
+              positions_list={session.positions_list}
+              onUpdate={(updates) => {
+                // Handle submissionsList format correctly
+                const formattedUpdates: any = { ...updates };
+                
+                if (updates.submissionsList !== undefined) {
+                  formattedUpdates.submissions_list = 
+                    typeof updates.submissionsList === 'string'
+                      ? updates.submissionsList
+                      : JSON.stringify(updates.submissionsList || []);
+                  delete formattedUpdates.submissionsList;
+                }
+                
+                updateSparringSession(index, formattedUpdates);
+              }}
+              onDelete={() => deleteSparringSession(index)}
+            />
+          )
         ))}
 
         {sparringSessions.length === 0 && (
           <View className="bg-white/5 p-8 rounded-xl border border-dashed border-white/20">
-            <Text className="text-gray-400 text-center font-lato">No sparrings yet</Text>
-            <Text className="text-gray-500 text-center text-sm mt-2 font-lato">Add your first sparring</Text>
+            <Text className="text-gray-400 text-center font-lato">
+              {trainingType === 'COMP' ? 'No matches logged' : 'No sparrings yet'}
+            </Text>
+            <Text className="text-gray-500 text-center text-sm mt-2 font-lato">
+              {trainingType === 'COMP' ? 'Add your first match result' : 'Add your first sparring'}
+            </Text>
           </View>
         )}
       </View>

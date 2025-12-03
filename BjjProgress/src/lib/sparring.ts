@@ -17,6 +17,14 @@ export interface SparringSession {
   positions_list?: string; // NEW: JSON string of PositionScore[]
   notes: string;
   partner_name?: string; // Name of sparring partner
+  // Competition Fields
+  is_competition_match?: boolean;
+  result?: 'win' | 'loss' | 'draw';
+  method?: 'submission' | 'points' | 'decision' | 'dq';
+  points_my?: number;
+  points_opp?: number;
+  stage?: 'final' | 'semi_final' | 'quarter_final' | 'elimination' | 'round_robin' | 'bronze_match';
+  submission_technique?: string;
 }
 
 export const createSparring = async (data: Omit<SparringSession, '$id'>) => {
@@ -45,6 +53,13 @@ export const getSparringsForTraining = async (trainingId: string): Promise<Sparr
     positions_list: doc.positions_list as string | undefined,
     notes: doc.notes as string,
     partner_name: doc.partner_name as string | undefined,
+    is_competition_match: doc.is_competition_match as boolean | undefined,
+    result: doc.result as any,
+    method: doc.method as any,
+    points_my: doc.points_my as number | undefined,
+    points_opp: doc.points_opp as number | undefined,
+    stage: doc.stage as any,
+    submission_technique: doc.submission_technique as string | undefined,
   }));
 };
 

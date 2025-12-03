@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { databases, appwriteConfig } from '../lib/appwrite';
@@ -7,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { getSparringsForTraining } from '../lib/sparring';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TrainingLog } from '../types';
-import { TrendingUp, LogOut, Plus, Calendar, Trash2, BarChart3, Settings } from 'lucide-react-native';
+import { TrendingUp, LogOut, Plus, Calendar, Trash2, BarChart3, Settings, Users } from 'lucide-react-native';
 import { getSubscriptionStatus, SubscriptionInfo, checkSubscription, getTrialDaysRemaining, isTrialActive } from '../utils/subscription';
 import { haptics } from '../utils/haptics';
 import { shadows } from '../styles/shadows';
@@ -16,14 +18,34 @@ import { StatNumber } from '../components/StatNumber';
 import { BeltDisplay } from '../components/BeltDisplay';
 import { BeltLevel, Stripes } from '../constants/bjj-belts';
 import PRODetailsModal from '../components/PRODetailsModal';
+import CustomAlert from '../components/CustomAlert';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export default function HomeScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const [logs, setLogs] = useState<TrainingLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const queryClient = useQueryClient();
+  
+  const { data: logs = [], isLoading: loading, refetch, isRefetching: refreshing } = useQuery({
+    queryKey: ['trainingLogs', user?.$id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { databaseId, collectionId } = appwriteConfig;
+      if (!databaseId || !collectionId) throw new Error('Appwrite config missing');
+      
+      const response = await databases.listDocuments(
+        databaseId,
+        collectionId,
+        [
+          Query.equal('user_id', user.$id),
+          Query.orderDesc('date')
+        ]
+      );
+      return response.documents as unknown as TrainingLog[];
+    },
+    enabled: !!user,
+  });
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo>({
     isPremium: false,
     isTrial: false,
@@ -34,6 +56,20 @@ export default function HomeScreen({ navigation }: Props) {
   const [belt, setBelt] = useState<BeltLevel>('white');
   const [stripes, setStripes] = useState<Stripes>(0);
   const [showPROModal, setShowPROModal] = useState(false);
+  
+  // Custom Alert State
+  const [alert, setAlert] = useState({ 
+    visible: false, 
+    title: '', 
+    message: '', 
+    type: 'info' as 'success' | 'error' | 'info',
+    onConfirm: undefined as (() => void) | undefined,
+    confirmText: 'OK'
+  });
+
+  const showAlert = (title: string, message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setAlert({ visible: true, title, message, type, onConfirm: undefined, confirmText: 'OK' });
+  };
 
   // Update subscription info when user changes
   useEffect(() => {
@@ -50,43 +86,17 @@ export default function HomeScreen({ navigation }: Props) {
     }
   }, [user]);
 
-  const fetchLogs = async () => {
-    if (!user) return;
-    try {
-      const { databaseId, collectionId } = appwriteConfig;
-      if (!databaseId || !collectionId) {
-        throw new Error('Appwrite configuration missing');
-      }
-
-      const response = await databases.listDocuments(
-        databaseId,
-        collectionId,
-        [
-          Query.equal('user_id', user.$id),
-          Query.orderDesc('date')
-        ]
-      );
-      // Cast documents to TrainingLog[] (Appwrite returns Document objects which include $id, etc.)
-      const documents = response.documents as unknown as TrainingLog[];
-      setLogs(documents);
-    } catch (error) {
-      console.error('Error fetching logs:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
+  // useFocusEffect to refetch when screen comes into focus (optional, but good for ensuring fresh data)
   useFocusEffect(
     useCallback(() => {
-      fetchLogs();
-    }, [user])
+      // We can rely on React Query's staleTime/gcTime, but if we want to force check:
+      // refetch();
+    }, [])
   );
 
   const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchLogs();
-  }, []);
+    refetch();
+  }, [refetch]);
 
   const handleLogout = async () => {
     try {
@@ -97,57 +107,61 @@ export default function HomeScreen({ navigation }: Props) {
     }
   };
 
-  const handleDeleteTraining = async (logId: string, logType: string, logDate: string) => {
-    Alert.alert(
-      'Delete Training',
-      `Delete this ${logType} training from ${new Date(logDate).toLocaleDateString()}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { sparringCollectionId, databaseId, collectionId } = appwriteConfig;
+  const handleDeleteTraining = (logId: string, logType: string, logDate: string) => {
+    setAlert({
+      visible: true,
+      title: t('home.delete_title'),
+      message: t('home.delete_confirm', { type: logType, date: new Date(logDate).toLocaleDateString() }),
+      type: 'error',
+      confirmText: t('common.delete'),
+      onConfirm: async () => {
+        try {
+          // Close confirmation alert first
+          setAlert(prev => ({ ...prev, visible: false }));
+          
+          const { sparringCollectionId, databaseId, collectionId } = appwriteConfig;
 
-              if (!databaseId || !collectionId) {
-                throw new Error('Appwrite configuration missing');
-              }
+          if (!databaseId || !collectionId) {
+            throw new Error('Appwrite configuration missing');
+          }
 
-              // Delete sparring sessions first
-              const sparrings = await getSparringsForTraining(logId);
-              
-              if (sparringCollectionId) {
-                for (const sparring of sparrings) {
-                  if (sparring.$id) {
-                    await databases.deleteDocument(
-                      databaseId,
-                      sparringCollectionId,
-                      sparring.$id
-                    );
-                  }
-                }
+          // Delete sparring sessions first
+          const sparrings = await getSparringsForTraining(logId);
+          
+          if (sparringCollectionId) {
+            for (const sparring of sparrings) {
+              if (sparring.$id) {
+                await databases.deleteDocument(
+                  databaseId,
+                  sparringCollectionId,
+                  sparring.$id
+                );
               }
-              
-              // Delete training log
-              await databases.deleteDocument(
-                databaseId,
-                collectionId,
-                logId
-              );
-              
-              // Refresh list
-              fetchLogs();
-              
-              Alert.alert('Success', 'Training deleted');
-            } catch (error) {
-              console.error('Delete error:', error);
-              Alert.alert('Error', 'Failed to delete training');
             }
-          },
-        },
-      ]
-    );
+          }
+          
+          // Delete training log
+          await databases.deleteDocument(
+            databaseId,
+            collectionId,
+            logId
+          );
+          
+          // Refresh list
+          queryClient.invalidateQueries({ queryKey: ['trainingLogs', user?.$id] });
+          
+          // Show success alert
+          setTimeout(() => {
+            showAlert(t('common.success'), t('home.delete_success'), 'success');
+          }, 300);
+        } catch (error) {
+          console.error('Delete error:', error);
+          setTimeout(() => {
+            showAlert(t('common.error'), t('home.delete_error'), 'error');
+          }, 300);
+        }
+      }
+    });
   };
 
   const renderLogItem = ({ item }: { item: TrainingLog }) => (
@@ -174,6 +188,8 @@ export default function HomeScreen({ navigation }: Props) {
         }}
         className="p-5"
         activeOpacity={0.85}
+        accessibilityLabel={`Training on ${new Date(item.date).toLocaleDateString()}`}
+        accessibilityRole="button"
       >
         <View className="flex-row justify-between items-start mb-4">
           {/* Date - Giant Number Design */}
@@ -203,13 +219,13 @@ export default function HomeScreen({ navigation }: Props) {
           {/* Duration - Giant Number */}
           <View>
             <Text className="text-[9px] font-inter-bold uppercase tracking-widest text-gray-500 mb-1">
-              DURATION
+              {t('home.duration')}
             </Text>
             <View className="flex-row items-baseline gap-2">
               <Text className="font-bebas text-5xl text-bjj-green leading-none">
                 {item.duration}
               </Text>
-              <Text className="font-inter text-lg text-gray-400">min</Text>
+              <Text className="font-inter text-lg text-gray-400">{t('home.min')}</Text>
             </View>
           </View>
           
@@ -218,6 +234,8 @@ export default function HomeScreen({ navigation }: Props) {
             onPress={() => handleDeleteTraining(item.$id, item.type, item.date)}
             className="p-2.5 bg-bjj-red/10 rounded-lg"
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityLabel={t('home.delete_title')}
+            accessibilityRole="button"
           >
             <Trash2 size={20} color="#ef4444" style={{ opacity: 0.8 }} />
           </TouchableOpacity>
@@ -237,9 +255,11 @@ export default function HomeScreen({ navigation }: Props) {
       <View className="px-4 pt-14 pb-3">
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center gap-3">
-            <Text className="font-bebas text-3xl text-white tracking-wider">MY TRAININGS</Text>
+            <Text className="font-bebas text-3xl text-white tracking-wider">{t('home.title')}</Text>
           </View>
           
+          {/* Friends Button Removed as per request */}
+
           {/* Logout Button */}
           <TouchableOpacity 
           onPress={async () => {
@@ -249,9 +269,11 @@ export default function HomeScreen({ navigation }: Props) {
           }}
           className="bg-red-500/10 border border-red-500/30 px-3 py-2 rounded-xl flex-row items-center gap-2"
           activeOpacity={0.7}
+          accessibilityLabel={t('common.logout')}
+          accessibilityRole="button"
         >
             <LogOut size={16} color="#ef4444" />
-            <Text className="text-red-400 font-inter-bold text-xs">Logout</Text>
+            <Text className="text-red-400 font-inter-bold text-xs">{t('common.logout')}</Text>
           </TouchableOpacity>
         </View>
         
@@ -263,6 +285,8 @@ export default function HomeScreen({ navigation }: Props) {
           }}
           className="mt-2 flex-row items-center justify-between bg-dark-card/50 rounded-xl p-3 border border-gray-700/50"
           activeOpacity={0.7}
+          accessibilityLabel={t('common.settings')}
+          accessibilityRole="button"
         >
           <BeltDisplay belt={belt} stripes={stripes} size="normal" />
           <Settings size={20} color="#9CA3AF" />
@@ -280,21 +304,28 @@ export default function HomeScreen({ navigation }: Props) {
               haptics.medium();
               setShowPROModal(true);
             }}
-            className="bg-purple-500/20 border-2 border-purple-500/50 px-3 py-2 rounded-xl flex-row items-center gap-2"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 rounded-full flex-row items-center gap-2 border border-purple-400/30"
             style={{
               shadowColor: '#a855f7',
               shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 4,
+              shadowOpacity: 0.5,
+              shadowRadius: 8,
+              elevation: 5,
             }}
             activeOpacity={0.7}
+            accessibilityLabel="PRO Status"
+            accessibilityRole="button"
           >
-            <View className="bg-purple-500/30 p-1 rounded-full">
-              <TrendingUp size={14} color="#a855f7" />
+            <LinearGradient
+              colors={['#9333ea', '#7c3aed']}
+              className="absolute inset-0 rounded-full"
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
+            <View className="bg-white/20 p-1 rounded-full">
+              <TrendingUp size={12} color="#ffffff" />
             </View>
-            <Text className="text-purple-400 font-inter-bold text-xs">PRO</Text>
-            <Text className="text-green-400 font-inter-bold text-[10px]">✓</Text>
+            <Text className="text-white font-inter-bold text-xs tracking-wide">{t('home.pro_active')}</Text>
           </TouchableOpacity>
         )}
         
@@ -304,6 +335,8 @@ export default function HomeScreen({ navigation }: Props) {
             haptics.light();
             navigation.navigate('Stats');
           }}
+          accessibilityLabel="Statistics"
+          accessibilityRole="button"
         >
           <BarChart3 size={20} color="#60a5fa" />
         </TouchableOpacity>
@@ -313,8 +346,10 @@ export default function HomeScreen({ navigation }: Props) {
               haptics.medium();
               navigation.navigate('AddLog');
             }}
+            accessibilityLabel={t('home.add')}
+            accessibilityRole="button"
           >
-            <Text className="text-white font-lato text-sm font-bold">+ Add</Text>
+            <Text className="text-white font-lato text-sm font-bold">{t('home.add')}</Text>
           </TouchableOpacity>
       </View>
 
@@ -327,10 +362,10 @@ export default function HomeScreen({ navigation }: Props) {
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
                   <Text className="text-blue-400 font-inter-bold text-base mb-1">
-                    🎁 Trial: {getTrialDaysRemaining((user?.prefs as any)?.trial_end_date)} day{getTrialDaysRemaining((user?.prefs as any)?.trial_end_date) !== 1 ? 's' : ''} left
+                    {t('home.trial_active', { days: getTrialDaysRemaining((user?.prefs as any)?.trial_end_date), plural: getTrialDaysRemaining((user?.prefs as any)?.trial_end_date) !== 1 ? 's' : '' })}
                   </Text>
                   <Text className="text-gray-300 font-inter text-sm">
-                    Enjoying BJJ Progress? Upgrade to keep tracking!
+                    {t('home.trial_message')}
                   </Text>
                 </View>
               </View>
@@ -338,9 +373,11 @@ export default function HomeScreen({ navigation }: Props) {
                 onPress={() => navigation.navigate('Paywall')}
                 className="bg-blue-500 rounded-lg py-3 mt-3"
                 activeOpacity={0.8}
+                accessibilityLabel={t('home.upgrade_to_pro')}
+                accessibilityRole="button"
               >
                 <Text className="text-white font-inter-bold text-center">
-                  Upgrade to PRO
+                  {t('home.upgrade_to_pro')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -362,6 +399,8 @@ export default function HomeScreen({ navigation }: Props) {
               }}
               onPress={() => navigation.navigate('Paywall')}
               activeOpacity={0.9}
+              accessibilityLabel={t('home.upgrade_to_pro')}
+              accessibilityRole="button"
             >
               <LinearGradient
                 colors={['rgba(88, 28, 135, 0.4)', 'rgba(30, 58, 138, 0.4)']}
@@ -377,19 +416,19 @@ export default function HomeScreen({ navigation }: Props) {
                       <TrendingUp size={18} color="#a855f7" />
                     </View>
                     <View>
-                      <Text className="text-white font-lato text-base font-bold">Unlimited Tracking</Text>
+                      <Text className="text-white font-lato text-base font-bold">{t('home.unlimited_tracking')}</Text>
                       <View className="bg-yellow-500/20 px-2 py-0.5 rounded text-xs border border-yellow-500/30 self-start mt-1">
-                        <Text className="text-yellow-400 text-[10px] font-bold">RECOMMENDED</Text>
+                        <Text className="text-yellow-400 text-[10px] font-bold">{t('home.recommended')}</Text>
                       </View>
                     </View>
                   </View>
                   <Text className="text-gray-300 font-lato text-xs leading-4 mt-2">
-                    Unlimited tracking, advanced stats & more.
+                    {t('home.unlimited_desc')}
                   </Text>
                 </View>
                 
                 <View className="bg-white px-4 py-2.5 rounded-xl shadow-lg">
-                  <Text className="text-purple-900 font-lato-bold text-xs">Upgrade</Text>
+                  <Text className="text-purple-900 font-lato-bold text-xs">{t('home.upgrade_btn')}</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -412,14 +451,14 @@ export default function HomeScreen({ navigation }: Props) {
               tintColor="#8b5cf6"
               colors={['#8b5cf6', '#ec4899']}  // Android gradient
               progressBackgroundColor="#151b2e"
-              title="Pull to refresh"  // iOS
+              title={t('home.pull_to_refresh')}  // iOS
               titleColor="#8b5cf6"
             />
           }
           ListEmptyComponent={
             <View className="items-center mt-10">
-              <Text className="text-gray-400 text-lg">No trainings yet</Text>
-              <Text className="text-gray-500 text-sm mt-2">Add your first training!</Text>
+              <Text className="text-gray-400 text-lg">{t('home.no_trainings')}</Text>
+              <Text className="text-gray-500 text-sm mt-2">{t('home.add_first')}</Text>
             </View>
           }
         />
@@ -431,6 +470,17 @@ export default function HomeScreen({ navigation }: Props) {
         visible={showPROModal}
         onClose={() => setShowPROModal(false)}
         renewalDate={(user?.prefs as any)?.subscription_renewal_date}
+      />
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ ...alert, visible: false })}
+        onConfirm={alert.onConfirm}
+        confirmText={alert.confirmText}
       />
     </View>
   );

@@ -25,6 +25,21 @@ app.get('/', (req, res) => {
   res.json({ status: 'BjjProgress Backend Running!' });
 });
 
+// Serve Password Reset Page
+app.get('/reset-password', (req, res) => {
+  res.sendFile(__dirname + '/reset-password.html');
+});
+
+// Serve Privacy Policy
+app.get('/privacy', (req, res) => {
+  res.sendFile(__dirname + '/privacy.html');
+});
+
+// Serve Terms of Service
+app.get('/terms', (req, res) => {
+  res.sendFile(__dirname + '/terms.html');
+});
+
 // Create payment
 app.post('/create-subscription', async (req, res) => {
   try {

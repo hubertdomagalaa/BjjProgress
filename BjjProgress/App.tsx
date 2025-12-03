@@ -1,6 +1,13 @@
 import React from 'react';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import './src/global.css';
+import './src/i18n'; // Initialize i18n
+import * as Sentry from '@sentry/react-native';
+import { PostHogProvider } from 'posthog-react-native';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -13,13 +20,14 @@ import AddLogScreen from './src/screens/AddLogScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import PaywallScreen from './src/screens/PaywallScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import FriendsScreen from './src/screens/FriendsScreen';
 
 import { TrainingLog, RootStackParamList } from './src/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 import { AuthProvider } from './src/context/AuthContext';
-import { account } from './src/lib/appwrite';
+import { account, client } from './src/lib/appwrite';
 import { useEffect } from 'react';
 import { useFonts, Lato_400Regular, Lato_700Bold } from '@expo-google-fonts/lato';
 import { Montserrat_700Bold } from '@expo-google-fonts/montserrat';
@@ -29,7 +37,28 @@ import { ActivityIndicator, View } from 'react-native';
 
 const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_YOUR_KEY_HERE';
 
-export default function App() {
+// Initialize Sentry
+/*
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || 'YOUR_SENTRY_DSN_HERE',
+  debug: __DEV__, // If `true`, Sentry will try to print out useful debugging information if something goes wrong with sending the event. Set it to `false` in production
+});
+*/
+
+// Initialize QueryClient
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      gcTime: 1000 * 60 * 60 * 24, // 24 hours
+    },
+  },
+});
+
+const persister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+});
+
+function App() {
   const [fontsLoaded] = useFonts({
     Lato_400Regular,
     Lato_700Bold,
@@ -41,6 +70,11 @@ export default function App() {
 
   useEffect(() => {
     // Verify Appwrite connection
+    // User requested client.ping() check
+    if ((client as any).ping) {
+      (client as any).ping().catch((e: any) => console.log('Ping check:', e));
+    }
+
     account.get()
       .then(() => console.log('Appwrite connection success (User logged in)'))
       .catch((e) => {
@@ -58,13 +92,24 @@ export default function App() {
   }
 
   return (
-    <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
-      <AuthProvider>
-        <AppNavigator />
-      </AuthProvider>
-    </StripeProvider>
+    <PostHogProvider apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY || 'YOUR_POSTHOG_KEY'} options={{
+      host: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
+    }}>
+      <PersistQueryClientProvider 
+        client={queryClient} 
+        persistOptions={{ persister }}
+      >
+        <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+          <AuthProvider>
+            <AppNavigator />
+          </AuthProvider>
+        </StripeProvider>
+      </PersistQueryClientProvider>
+    </PostHogProvider>
   );
 }
+
+export default App; // Sentry.wrap(App);
 
 // Separate component to access AuthContext
 function AppNavigator() {
@@ -99,6 +144,7 @@ function AppNavigator() {
         <Stack.Screen name="Stats" component={StatsScreen} />
         <Stack.Screen name="Paywall" component={PaywallScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Friends" component={FriendsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

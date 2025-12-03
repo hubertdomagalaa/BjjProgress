@@ -1,0 +1,34 @@
+{
+  "common": {
+    "loading": "Carregando...",
+    "success": "Sucesso",
+    "error": "Erro",
+    "ok": "OK",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "save": "Salvar",
+    "logout": "Sair",
+    "settings": "Configurações"
+  },
+  "home": {
+    "title": "MEUS TREINOS",
+    "add": "+ Adicionar",
+    "pro_active": "PRO ATIVO",
+    "trial_active": "🎁 Teste: {{days}} dia{{plural}} restante{{plural}}",
+    "trial_message": "Curtindo o BJJ Progress? Atualize para continuar!",
+    "upgrade_to_pro": "Mudar para PRO",
+    "unlimited_tracking": "Rastreamento Ilimitado",
+    "recommended": "RECOMENDADO",
+    "unlimited_desc": "Rastreamento ilimitado, estatísticas avançadas e mais.",
+    "upgrade_btn": "Atualizar",
+    "pull_to_refresh": "Puxe para atualizar",
+    "no_trainings": "Nenhum treino ainda",
+    "add_first": "Adicione seu primeiro treino!",
+    "duration": "DURAÇÃO",
+    "min": "min",
+    "delete_title": "Excluir Treino",
+    "delete_confirm": "Excluir este treino de {{type}} de {{date}}?",
+    "delete_success": "Treino excluído",
+    "delete_error": "Falha ao excluir treino"
+  }
+}
