@@ -127,12 +127,12 @@ export default function LoginScreen({ navigation, route }: Props) {
             colors={['#a855f7', '#7c3aed']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            className="py-4 rounded-2xl items-center shadow-lg shadow-purple-500/40"
+            className="py-4 rounded-2xl items-center justify-center shadow-lg shadow-purple-500/40"
           >
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text className="text-white font-lato-bold text-lg">
+              <Text className="text-white font-lato-bold text-lg text-center">
                 {isLoginMode ? 'Sign In' : 'Create Account'}
               </Text>
             )}

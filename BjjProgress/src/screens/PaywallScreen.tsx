@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { BarChart3, TrendingUp, Award, Gift, Crown, Check, X } from 'lucide-react-native';
 import { useStripe } from '@stripe/stripe-react-native';
 import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MotiView } from 'moti';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Paywall'>;
 
 const STRIPE_PRO_MONTHLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID || 'price_1QJzwxB123c7agjhQ4TN4e3o';
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://your-backend.vercel.app';
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://bjjprogress-backend.vercel.app';
 
 export default function PaywallScreen({ navigation }: Props) {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
@@ -39,7 +40,7 @@ export default function PaywallScreen({ navigation }: Props) {
       console.log('Backend URL:', BACKEND_URL);
       
       // 1. Create payment intent on your backend
-      const response = await fetch('https://bjjprogress-backend-fsbco10c4-hubinis-projects.vercel.app/create-subscription', {
+      const response = await fetch(`${BACKEND_URL}/create-subscription`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,6 +111,7 @@ export default function PaywallScreen({ navigation }: Props) {
         defaultBillingDetails: {
           email: user.email,
         },
+        returnURL: 'bjjprogress://stripe-redirect',
       });
 
       if (initError) {
@@ -172,46 +174,52 @@ export default function PaywallScreen({ navigation }: Props) {
         </TouchableOpacity>
 
         {/* Hero Section */}
-        <View className="items-center pt-20 pb-10 px-4">
+        <View className="items-center pt-20 pb-10 px-4 w-full max-w-3xl self-center">
           <View className="bg-purple-500/20 p-6 rounded-full mb-6 border border-purple-500/30 shadow-lg shadow-purple-500/50">
             <Crown size={48} color="#a855f7" />
           </View>
-          <Text className="text-white text-4xl font-montserrat text-center mb-2">
+          <Text className="text-white text-4xl font-montserrat text-center mb-2" adjustsFontSizeToFit numberOfLines={1}>
             Unlock Pro
           </Text>
-          <Text className="text-gray-400 text-center font-lato text-lg px-4">
+          <Text className="text-gray-400 text-center font-lato text-lg px-4" adjustsFontSizeToFit numberOfLines={2}>
             Take your BJJ journey to the next level
           </Text>
         </View>
 
         {/* Features List - Premium Cards */}
-        <View className="px-6 mb-10">
+        <View className="px-6 mb-10 w-full max-w-3xl self-center">
           <View className="bg-[#1e293b] rounded-3xl p-6 border border-white/5 shadow-xl shadow-black/30">
             {features.map((feature, index) => (
-              <View key={index} className="flex-row items-center mb-6 last:mb-0">
+              <MotiView 
+                key={index} 
+                from={{ opacity: 0, translateX: -20 }}
+                animate={{ opacity: 1, translateX: 0 }}
+                transition={{ type: 'timing', duration: 500, delay: index * 100 }}
+                className="flex-row items-center mb-6 last:mb-0"
+              >
                 <View className="bg-purple-500/10 p-3 rounded-xl mr-4">
                   <Check size={20} color="#a855f7" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-white font-lato-bold text-base">{feature}</Text>
+                  <Text className="text-white font-lato-bold text-base" adjustsFontSizeToFit numberOfLines={2}>{feature}</Text>
                 </View>
-              </View>
+              </MotiView>
             ))}
           </View>
         </View>
 
         {/* Pricing Card */}
-        <View className="px-6 mb-8">
+        <View className="px-6 mb-8 w-full max-w-3xl self-center">
           <View className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 p-1 rounded-3xl border border-purple-500/30">
             <View className="bg-[#1e293b]/90 p-6 rounded-[20px] items-center">
               <View className="bg-green-500/20 px-3 py-1 rounded-full mb-4 border border-green-500/30">
                 <Text className="text-green-400 font-bold text-xs">7 DAYS FREE TRIAL</Text>
               </View>
               
-              <Text className="text-white font-montserrat text-5xl mb-1">$4.99</Text>
+              <Text className="text-white font-montserrat text-5xl mb-1" adjustsFontSizeToFit numberOfLines={1}>$4.99</Text>
               <Text className="text-gray-400 font-lato mb-6">per month</Text>
               
-              <Text className="text-gray-300 text-center text-sm mb-2">
+              <Text className="text-gray-300 text-center text-sm mb-2" adjustsFontSizeToFit numberOfLines={2}>
                 Recurring billing. Cancel anytime.
               </Text>
             </View>
@@ -221,26 +229,65 @@ export default function PaywallScreen({ navigation }: Props) {
 
       {/* Sticky Subscribe Button */}
       <View className="p-6 bg-[#0f172a] border-t border-white/5">
-        <TouchableOpacity
-          onPress={handleSubscribe}
-          disabled={loading}
-          className="w-full"
-        >
-          <LinearGradient
-            colors={['#a855f7', '#7c3aed']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            className="py-4 rounded-2xl items-center shadow-lg shadow-purple-500/40"
+        {Platform.OS === 'ios' ? (
+          <MotiView 
+            from={{ scale: 1 }}
+            animate={{ scale: 1.02 }}
+            transition={{
+              type: 'timing',
+              duration: 1500,
+              loop: true,
+              repeatReverse: true,
+            }}
+            className="w-full py-4 rounded-2xl bg-green-500/20 border border-green-500/30 items-center"
           >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-white font-lato-bold text-lg">
-                Start Free Trial
-              </Text>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+            <Text className="text-green-400 font-lato-bold text-lg text-center">
+              🎉 Launch Special: Free Access Active!
+            </Text>
+            <Text className="text-green-500/70 text-xs text-center mt-1">
+              Enjoy PRO features for free during our launch.
+            </Text>
+          </MotiView>
+        ) : (
+          <MotiView
+            from={{ scale: 1 }}
+            animate={{ scale: 1.03 }}
+            transition={{
+              type: 'timing',
+              duration: 1500,
+              loop: true,
+              repeatReverse: true,
+            }}
+          >
+          <TouchableOpacity
+            onPress={handleSubscribe}
+            disabled={loading}
+            className="w-full rounded-2xl overflow-hidden"
+          >
+            <LinearGradient
+              colors={['#a855f7', '#7c3aed']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              className="py-4 items-center justify-center"
+              style={{
+                 shadowColor: '#a855f7',
+                 shadowOffset: { width: 0, height: 4 },
+                 shadowOpacity: 0.3,
+                 shadowRadius: 8,
+                 elevation: 8,
+              }}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white font-lato-bold text-lg text-center">
+                  Start Free Trial
+                </Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+          </MotiView>
+        )}
         <Text className="text-gray-500 text-xs text-center mt-4">
           By subscribing you agree to our Terms & Privacy Policy
         </Text>

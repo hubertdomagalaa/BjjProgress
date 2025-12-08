@@ -6,13 +6,55 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleDebug -PsuppressKotlinVersionCompatibilityCheck=true -Pandroid.kotlinVersion=1.9.24 -PkotlinVersion=1.9.24"
+      },
+      "env": {
+        "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "69283bd60018f7ae198f",
+        "EXPO_PUBLIC_APPWRITE_PROJECT_NAME": "BjjProgress",
+        "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://fra.cloud.appwrite.io/v1",
+        "EXPO_PUBLIC_APPWRITE_DATABASE_ID": "692851cd0017043e0d61",
+        "EXPO_PUBLIC_APPWRITE_COLLECTION_ID": "training_logs",
+        "EXPO_PUBLIC_APPWRITE_SPARRING_COLLECTION_ID": "sparring_sessions",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51SMoXpDetEjkkAZdN6XyXbe5jjxdyaKLT4T5uO7TGbHyEYZ89ZAGqbWPxab8T8II7zwFaXziud7RJngLjXQe3tUe007wMYfQLl",
+        "EXPO_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID": "price_1SYBAPDetEjkkAZdYVeqi0NZ",
+        "EXPO_PUBLIC_BACKEND_URL": "https://bjjprogress.vercel.app",
+        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_B63aa4h2OyRm1eyq5t9EXjQFEpuxuaOugH4rBQzOkkJ",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "69283bd60018f7ae198f",
+        "EXPO_PUBLIC_APPWRITE_PROJECT_NAME": "BjjProgress",
+        "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://fra.cloud.appwrite.io/v1",
+        "EXPO_PUBLIC_APPWRITE_DATABASE_ID": "692851cd0017043e0d61",
+        "EXPO_PUBLIC_APPWRITE_COLLECTION_ID": "training_logs",
+        "EXPO_PUBLIC_APPWRITE_SPARRING_COLLECTION_ID": "sparring_sessions",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51SMoXpDetEjkkAZdN6XyXbe5jjxdyaKLT4T5uO7TGbHyEYZ89ZAGqbWPxab8T8II7zwFaXziud7RJngLjXQe3tUe007wMYfQLl",
+        "EXPO_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID": "price_1SYBAPDetEjkkAZdYVeqi0NZ",
+        "EXPO_PUBLIC_BACKEND_URL": "https://bjjprogress.vercel.app",
+        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_B63aa4h2OyRm1eyq5t9EXjQFEpuxuaOugH4rBQzOkkJ",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "69283bd60018f7ae198f",
+        "EXPO_PUBLIC_APPWRITE_PROJECT_NAME": "BjjProgress",
+        "EXPO_PUBLIC_APPWRITE_ENDPOINT": "https://fra.cloud.appwrite.io/v1",
+        "EXPO_PUBLIC_APPWRITE_DATABASE_ID": "692851cd0017043e0d61",
+        "EXPO_PUBLIC_APPWRITE_COLLECTION_ID": "training_logs",
+        "EXPO_PUBLIC_APPWRITE_SPARRING_COLLECTION_ID": "sparring_sessions",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51SMoXpDetEjkkAZdN6XyXbe5jjxdyaKLT4T5uO7TGbHyEYZ89ZAGqbWPxab8T8II7zwFaXziud7RJngLjXQe3tUe007wMYfQLl",
+        "EXPO_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID": "price_1SYBAPDetEjkkAZdYVeqi0NZ",
+        "EXPO_PUBLIC_BACKEND_URL": "https://bjjprogress.vercel.app",
+        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_B63aa4h2OyRm1eyq5t9EXjQFEpuxuaOugH4rBQzOkkJ",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com"
+      }
     }
   },
   "submit": {

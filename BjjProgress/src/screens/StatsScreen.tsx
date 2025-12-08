@@ -15,6 +15,8 @@ import { PositionScore, POINT_POSITIONS } from '../constants/bjj-positions';
 import { haptics } from '../utils/haptics';
 import { shadows } from '../styles/shadows';
 import { checkSubscription, isTrialExpired } from '../utils/subscription';
+import { MotiView } from 'moti';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 
 
 type TimeRange = 'WEEK' | 'MONTH' | 'YEAR';
@@ -34,59 +36,10 @@ export default function StatsScreen() {
   const [trainingType, setTrainingType] = useState<TrainingType>('ALL');
   const [sparringData, setSparringData] = useState<any[]>([]);
 
-  // Check if user has access (PRO or active trial)
-  const { hasAccess } = checkSubscription(user?.prefs);
-  const trialExpired = isTrialExpired(user?.prefs);
-  const isBlocked = !hasAccess && trialExpired;
-
-  // Block stats for non-PRO users with expired trial
-  if (isBlocked) {
-    return (
-      <View className="flex-1 bg-dark-bg items-center justify-center p-6">
-        <LinearGradient
-          colors={['#1e293b', '#0f172a']}
-          className="w-full max-w-md rounded-3xl p-8 items-center"
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View className="bg-orange-500/20 p-4 rounded-full mb-4">
-            <BarChart3 size={40} color="#f97316" />
-          </View>
-          
-          <Text className="text-white font-inter-bold text-2xl text-center mb-2">
-            Statistics Locked 🔒
-          </Text>
-          
-          <Text className="text-gray-400 font-inter text-center mb-6">
-            Your trial has ended. Upgrade to PRO to access detailed statistics and insights about your BJJ progress!
-          </Text>
-          
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Paywall' as never)}
-            className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl py-4 px-8 w-full mb-3"
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#a855f7', '#ec4899']}
-              className="absolute inset-0 rounded-xl"
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-            <Text className="text-white font-inter-bold text-center text-lg relative z-10">
-              Unlock Statistics
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            className="mt-2"
-          >
-            <Text className="text-gray-500 font-inter">Go Back</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      </View>
-    );
-  }
+  // Subscription check disabled for free launch - all users have access
+  // const { hasAccess } = checkSubscription(user?.prefs);
+  // const trialExpired = isTrialExpired(user?.prefs);
+  // const isBlocked = !hasAccess && trialExpired;
 
   const fetchLogs = async () => {
     if (!user) return;
@@ -103,16 +56,12 @@ export default function StatsScreen() {
       const fetchedLogs = response.documents as unknown as TrainingLog[];
       setLogs(fetchedLogs);
 
-      // Fetch sparring data for all logs
-      const allSparrings = [];
-      for (const log of fetchedLogs) {
-        try {
-          const sparrings = await getSparringsForTraining(log.$id);
-          allSparrings.push(...sparrings);
-        } catch (e) {
-          // Skip if error
-        }
-      }
+      // Fetch sparring data for all logs IN PARALLEL (10x faster!)
+      const sparringPromises = fetchedLogs.map(log => 
+        getSparringsForTraining(log.$id).catch(() => [])
+      );
+      const sparringResults = await Promise.all(sparringPromises);
+      const allSparrings = sparringResults.flat();
       setSparringData(allSparrings);
     } catch (error) {
       console.error('Error fetching logs for stats:', error);
@@ -513,34 +462,31 @@ export default function StatsScreen() {
           <View className="py-20">
             <ActivityIndicator size="large" color="#a855f7" />
           </View>
+        ) : logs.length === 0 ? (
+           <View className="items-center justify-center py-20 px-6">
+             <View className="bg-white/5 p-6 rounded-full mb-4 border border-white/10">
+               <TrendingUp size={48} color="#6b7280" />
+             </View>
+             <Text className="text-white font-bebas text-2xl tracking-wide mb-2">
+               NO STATS AVAILABLE
+             </Text>
+             <Text className="text-gray-400 text-center font-lato text-sm mb-6 max-w-xs leading-5">
+               Log your first training session to unlock detailed analytics and track your progress on the mats!
+             </Text>
+             <TouchableOpacity
+               onPress={() => navigation.navigate('AddLog' as never)}
+               className="bg-purple-600 px-8 py-3 rounded-xl border border-purple-400/30 shadow-lg shadow-purple-500/20"
+             >
+               <Text className="text-white font-inter-bold text-base">Log Training</Text>
+             </TouchableOpacity>
+           </View>
         ) : (
           <View className="pb-8">
-            {/* Competition Mode: Medal Case & Stats */}
+            {/* Competition Mode: Stats */}
             {trainingType === 'COMP' && (
               <View className="mb-8">
-                <Text className="text-yellow-400 font-bebas text-2xl mb-4 tracking-wider">🏆 MEDAL CASE</Text>
+                <Text className="text-yellow-400 font-bebas text-2xl mb-4 tracking-wider">🏆 COMPETITION RECORD</Text>
                 
-                {/* Medals Row */}
-                <View className="flex-row justify-between mb-6 bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <View className="items-center flex-1">
-                    <Medal size={40} color="#eab308" />
-                    <Text className="text-yellow-400 font-bebas text-3xl mt-2">{stats.goldCount}</Text>
-                    <Text className="text-gray-500 text-[10px] font-inter-bold uppercase">GOLD</Text>
-                  </View>
-                  <View className="w-[1px] bg-white/10" />
-                  <View className="items-center flex-1">
-                    <Medal size={40} color="#94a3b8" />
-                    <Text className="text-gray-300 font-bebas text-3xl mt-2">{stats.silverCount}</Text>
-                    <Text className="text-gray-500 text-[10px] font-inter-bold uppercase">SILVER</Text>
-                  </View>
-                  <View className="w-[1px] bg-white/10" />
-                  <View className="items-center flex-1">
-                    <Medal size={40} color="#b45309" />
-                    <Text className="text-amber-700 font-bebas text-3xl mt-2">{stats.bronzeCount}</Text>
-                    <Text className="text-gray-500 text-[10px] font-inter-bold uppercase">BRONZE</Text>
-                  </View>
-                </View>
-
                 {/* Win/Loss Record */}
                 <View className="flex-row gap-3">
                   <View className="flex-1 bg-green-500/10 border border-green-500/20 rounded-2xl p-4 items-center">
@@ -560,7 +506,12 @@ export default function StatsScreen() {
             )}
 
             {/* Overview Cards - Clean 5-Tile Layout */}
-            <View className="mb-6">
+            <MotiView 
+              from={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'timing', duration: 500 }}
+              className="mb-6"
+            >
               {/* Training Summary - Giant Number */}
               <View 
                 className="bg-dark-card rounded-3xl p-6 mb-6" 
@@ -571,9 +522,11 @@ export default function StatsScreen() {
                 </Text>
                 
                 {/* Giant Total */}
-                <Text className="font-bebas text-9xl text-white leading-none mb-1">
-                  {stats.totalTrainings}
-                </Text>
+                <AnimatedNumber
+                  value={stats.totalTrainings}
+                  duration={1500}
+                  className="font-bebas text-9xl text-white leading-none mb-1"
+                />
                 <Text className="font-inter text-sm text-gray-400 mb-6">
                   total sessions logged
                 </Text>
@@ -581,17 +534,21 @@ export default function StatsScreen() {
                 {/* GI / NO-GI Breakdown */}
                 <View className="flex-row gap-4">
                   <View className="flex-1 bg-bjj-blue/10 rounded-2xl p-4 border border-bjj-blue/20">
-                    <Text className="text-bjj-blue font-bebas text-4xl leading-none">
-                      {stats.giCount}
-                    </Text>
+                    <AnimatedNumber
+                      value={stats.giCount}
+                      duration={1200}
+                      className="text-bjj-blue font-bebas text-4xl leading-none"
+                    />
                     <Text className="text-[9px] font-inter-bold uppercase text-gray-500 mt-1">
                       GI
                     </Text>
                   </View>
                   <View className="flex-1 bg-bjj-orange/10 rounded-2xl p-4 border border-bjj-orange/20">
-                    <Text className="text-bjj-orange font-bebas text-4xl leading-none">
-                      {stats.noGiCount}
-                    </Text>
+                    <AnimatedNumber
+                      value={stats.noGiCount}
+                      duration={1200}
+                      className="text-bjj-orange font-bebas text-4xl leading-none"
+                    />
                     <Text className="text-[9px] font-inter-bold uppercase text-gray-500 mt-1">
                       NO-GI
                     </Text>
@@ -617,11 +574,16 @@ export default function StatsScreen() {
                   <Text className="text-gray-400 text-xs font-lato">on the mat</Text>
                 </View>
               </View>
-            </View>
+            </MotiView>
 
             {/* Submission Analysis - Technique Breakdown */}
             {(Object.keys(stats.submissionsGivenByTechnique).length > 0 || Object.keys(stats.submissionsReceivedByTechnique).length > 0) && (
-              <View className="mb-6">
+              <MotiView 
+                from={{ opacity: 0, translateY: 20 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'timing', duration: 500, delay: 200 }}
+                className="mb-6"
+              >
                 <Text className="text-white font-bebas text-2xl mb-4 tracking-wider">🥋 SUBMISSION STATISTICS</Text>
                 <View className="flex-row gap-3">
                 {/* Submissions Given Analysis */}
@@ -639,15 +601,11 @@ export default function StatsScreen() {
                               return {
                                 value: count,
                                 color: colors[index % colors.length],
-                                text: count.toString(),
                               };
                             })}
                           radius={60}
-                          textColor="#fff"
-                          textSize={14}
-                          fontWeight="bold"
-                          showText
-                          showValuesAsLabels
+                          strokeColor="#1e293b"
+                          strokeWidth={2}
                         />
                       </View>
                       <View className="space-y-2">
@@ -664,7 +622,7 @@ export default function StatsScreen() {
                                   />
                                   <Text className="text-white font-lato text-sm flex-1" numberOfLines={1}>{technique}</Text>
                                 </View>
-                                <Text className="text-gray-400 font-lato-bold text-sm ml-2">{count}</Text>
+                                <Text className="text-white font-lato-bold text-sm ml-2">{count}</Text>
                               </View>
                             );
                           })}
@@ -689,16 +647,12 @@ export default function StatsScreen() {
                               const colors = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#10b981', '#f97316'];
                               return {
                                 value: count,
-                                color: colors[index],
-                                text: count.toString(),
+                                color: colors[index % colors.length],
                               };
                             })}
                           radius={60}
-                          textColor="#fff"
-                          textSize={14}
-                          fontWeight="bold"
-                          showText
-                          showValuesAsLabels
+                          strokeColor="#1e293b"
+                          strokeWidth={2}
                         />
                       </View>
                       <View className="space-y-2">
@@ -711,11 +665,11 @@ export default function StatsScreen() {
                               <View key={technique} className="flex-row items-center justify-between py-1">
                                 <View className="flex-row items-center flex-1">
                                   <View 
-                                    style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: colors[index], marginRight: 8 }}
+                                    style={{ width: 12, height: 12, borderRadius: 2, backgroundColor: colors[index % colors.length], marginRight: 8 }}
                                   />
                                   <Text className="text-white font-lato text-sm flex-1" numberOfLines={1}>{technique}</Text>
                                 </View>
-                                <Text className="text-gray-400 font-lato-bold text-sm ml-2">{count}</Text>
+                                <Text className="text-white font-lato-bold text-sm ml-2">{count}</Text>
                               </View>
                             );
                           })}
@@ -726,7 +680,7 @@ export default function StatsScreen() {
                   )}
                 </View>
                 </View>
-              </View>
+              </MotiView>
             )}
 
             {/* Sweep Statistics - Guard Usage Pie Charts */}
@@ -751,10 +705,9 @@ export default function StatsScreen() {
                                 color: colors[index % colors.length],
                               };
                             })}
-                          radius={50}
-                          textColor="#fff"
-                          textSize={12}
-                          fontWeight="bold"
+                          radius={60}
+                          strokeColor="#1e293b"
+                          strokeWidth={2}
                         />
                       </View>
                       <View className="space-y-2">
@@ -771,7 +724,7 @@ export default function StatsScreen() {
                                   />
                                   <Text className="text-white font-lato text-sm flex-1" numberOfLines={1}>{stat.guard}</Text>
                                 </View>
-                                <Text className="text-gray-400 font-lato-bold text-sm ml-2">{stat.given}</Text>
+                                <Text className="text-white font-lato-bold text-sm ml-2">{stat.given}</Text>
                               </View>
                             );
                           })}
@@ -799,10 +752,9 @@ export default function StatsScreen() {
                                 color: colors[index % colors.length],
                               };
                             })}
-                          radius={50}
-                          textColor="#fff"
-                          textSize={12}
-                          fontWeight="bold"
+                          radius={60}
+                          strokeColor="#1e293b"
+                          strokeWidth={2}
                         />
                       </View>
                       <View className="space-y-2">
@@ -832,58 +784,7 @@ export default function StatsScreen() {
               </View>
             </View>
 
-            {/* Submission Stats - Side by Side Pie Charts */}
-            {(stats.totalSubsGiven > 0 || stats.totalSubsReceived > 0) && (
-              <View className="flex-row gap-3 mb-6">
-                {/* Submissions Given */}
-                <View className="flex-1 bg-[#1e293b] rounded-2xl p-5 border border-white/5">
-                  <Text className="text-green-400 font-lato-bold text-xs mb-4">SUBMISSIONS GIVEN</Text>
-                  <View className="items-center mb-3">
-                    <PieChart
-                      data={[
-                        { value: stats.totalSubsGiven, color: '#10b981' },
-                        { value: Math.max(1, stats.totalSubsReceived), color: '#1e293b' }
-                      ]}
-                      radius={50}
-                      donut
-                      innerRadius={35}
-                      centerLabelComponent={() => (
-                        <View>
-                          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#fff' }}>
-                            {stats.totalSubsGiven}
-                          </Text>
-                        </View>
-                      )}
-                    />
-                  </View>
-                  <Text className="text-gray-400 text-center font-lato text-xs">Successful submissions</Text>
-                </View>
 
-                {/* Submissions Received */}
-                <View className="flex-1 bg-[#1e293b] rounded-2xl p-5 border border-white/5">
-                  <Text className="text-red-400 font-lato-bold text-xs mb-4">SUBMISSIONS RECEIVED</Text>
-                  <View className="items-center mb-3">
-                    <PieChart
-                      data={[
-                        { value: stats.totalSubsReceived, color: '#ef4444' },
-                        { value: Math.max(1, stats.totalSubsGiven), color: '#1e293b' }
-                      ]}
-                      radius={50}
-                      donut
-                      innerRadius={35}
-                      centerLabelComponent={() => (
-                        <View>
-                          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#fff' }}>
-                            {stats.totalSubsReceived}
-                          </Text>
-                        </View>
-                      )}
-                    />
-                  </View>
-                  <Text className="text-gray-400 text-center font-lato text-xs">Times submitted</Text>
-                </View>
-              </View>
-             )}
 
             {/* Position Statistics - IBJJF Points */}
             {positionStats.length > 0 && (
@@ -908,10 +809,9 @@ export default function StatsScreen() {
                                   color: colors[index],
                                 };
                               })}
-                            radius={50}
-                            textColor="#fff"
-                            textSize={12}
-                            fontWeight="bold"
+                            radius={60}
+                            strokeColor="#1e293b"
+                            strokeWidth={2}
                           />
                         </View>
                         <View className="space-y-2">
@@ -956,10 +856,9 @@ export default function StatsScreen() {
                                   color: colors[index],
                                 };
                               })}
-                            radius={50}
-                            textColor="#fff"
-                            textSize={12}
-                            fontWeight="bold"
+                            radius={60}
+                            strokeColor="#1e293b"
+                            strokeWidth={2}
                           />
                         </View>
                         <View className="space-y-2">

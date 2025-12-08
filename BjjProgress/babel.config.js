@@ -6,6 +6,8 @@ module.exports = function (api) {
       ["babel-preset-expo", { jsxImportSource: "nativewind" }],
       "nativewind/babel",
     ],
-    // Reanimated plugin removed - requires development build, not compatible with Expo Go
+    plugins: [
+      "react-native-reanimated/plugin",
+    ],
   };
 };

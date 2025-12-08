@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, Linking } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Linking, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { BeltDisplay } from '../components/BeltDisplay';
@@ -9,14 +9,18 @@ import { haptics } from '../utils/haptics';
 import { ArrowLeft } from 'lucide-react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export default function SettingsScreen({ navigation }: Props) {
-  const { user, deleteAccount } = useAuth();
+  const { user, deleteAccount, checkUser } = useAuth();
   const [belt, setBelt] = useState<BeltLevel>('white');
   const [stripes, setStripes] = useState<Stripes>(0);
+
   const [saving, setSaving] = useState(false);
+  const [showPromotionModal, setShowPromotionModal] = useState(false);
+  const confettiRef = useRef<ConfettiCannon>(null);
 
   useEffect(() => {
     if (user?.prefs) {
@@ -36,9 +40,12 @@ export default function SettingsScreen({ navigation }: Props) {
         stripes
       });
       
+      // Refresh user state so belt updates everywhere in the app
+      await checkUser();
+      
       haptics.success();
-      Alert.alert('Success', 'Belt updated successfully!');
-      navigation.goBack();
+      setShowPromotionModal(true);
+      // Confetti will start automatically when modal mounts
     } catch (error) {
       console.error('Error saving belt:', error);
       haptics.error();
@@ -153,14 +160,22 @@ export default function SettingsScreen({ navigation }: Props) {
             </Text>
             <View className="bg-dark-card rounded-xl overflow-hidden">
               <TouchableOpacity
-                onPress={() => Linking.openURL('https://bjjprogress-backend-fsbco10c4-hubinis-projects.vercel.app/privacy')}
+                onPress={() => Alert.alert(
+                  'Privacy Policy',
+                  'BJJ Progress respects your privacy. We collect minimal data (email for account, training logs you create). Your data is stored securely with Appwrite cloud services. We do not sell or share your personal information with third parties. You can delete your account and all associated data at any time from Settings.',
+                  [{ text: 'OK' }]
+                )}
                 className="p-4 border-b border-gray-700/50 flex-row justify-between items-center"
               >
                 <Text className="text-white font-inter">Privacy Policy</Text>
                 <ArrowLeft size={16} color="#6B7280" style={{ transform: [{ rotate: '180deg' }] }} />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => Linking.openURL('https://bjjprogress-backend-fsbco10c4-hubinis-projects.vercel.app/terms')}
+                onPress={() => Alert.alert(
+                  'Terms of Service',
+                  'By using BJJ Progress, you agree to: (1) Provide accurate information, (2) Use the app for personal training tracking only, (3) Not abuse or attempt to compromise the service. We provide this app as-is without warranties. BJJ Progress may update these terms at any time.',
+                  [{ text: 'OK' }]
+                )}
                 className="p-4 flex-row justify-between items-center"
               >
                 <Text className="text-white font-inter">Terms of Service</Text>
@@ -211,6 +226,53 @@ export default function SettingsScreen({ navigation }: Props) {
           </View>
         </View>
       </ScrollView>
+
+
+      {/* Promotion Celebration Modal */}
+      <Modal
+        visible={showPromotionModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowPromotionModal(false);
+          navigation.goBack();
+        }}
+      >
+        <View className="flex-1 bg-black/90 items-center justify-center p-6">
+          <ConfettiCannon
+            count={200}
+            origin={{x: -10, y: 0}}
+            autoStart={true}
+            ref={confettiRef}
+            fadeOut={true}
+          />
+          
+          <View className="items-center">
+            <Text className="text-white font-bebas text-6xl mb-2 text-center tracking-wider">
+              PROMOTED!
+            </Text>
+            <Text className="text-gray-300 font-lato text-xl mb-8 text-center">
+              Congratulations on your new rank.
+            </Text>
+            
+            <View className="mb-10 scale-150">
+              <BeltDisplay belt={belt} stripes={stripes} size="large" />
+            </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowPromotionModal(false);
+                navigation.goBack();
+              }}
+              className="bg-white px-8 py-4 rounded-full"
+            >
+              <Text className="text-black font-inter-bold text-lg">
+                Continue Journey
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

@@ -26,7 +26,7 @@ import { TrainingLog, RootStackParamList } from './src/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-import { AuthProvider } from './src/context/AuthContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { account, client } from './src/lib/appwrite';
 import { useEffect } from 'react';
 import { useFonts, Lato_400Regular, Lato_700Bold } from '@expo-google-fonts/lato';
@@ -92,20 +92,16 @@ function App() {
   }
 
   return (
-    <PostHogProvider apiKey={process.env.EXPO_PUBLIC_POSTHOG_API_KEY || 'YOUR_POSTHOG_KEY'} options={{
-      host: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
-    }}>
-      <PersistQueryClientProvider 
-        client={queryClient} 
-        persistOptions={{ persister }}
-      >
-        <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
-          <AuthProvider>
-            <AppNavigator />
-          </AuthProvider>
-        </StripeProvider>
-      </PersistQueryClientProvider>
-    </PostHogProvider>
+    <PersistQueryClientProvider 
+      client={queryClient} 
+      persistOptions={{ persister }}
+    >
+      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
+      </StripeProvider>
+    </PersistQueryClientProvider>
   );
 }
 
@@ -113,7 +109,7 @@ export default App; // Sentry.wrap(App);
 
 // Separate component to access AuthContext
 function AppNavigator() {
-  const { user, isLoading } = require('./src/context/AuthContext').useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (

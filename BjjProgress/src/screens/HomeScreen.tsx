@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Platform } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { databases, appwriteConfig } from '../lib/appwrite';
 import { Query } from 'react-native-appwrite';
@@ -19,6 +19,9 @@ import { BeltDisplay } from '../components/BeltDisplay';
 import { BeltLevel, Stripes } from '../constants/bjj-belts';
 import PRODetailsModal from '../components/PRODetailsModal';
 import CustomAlert from '../components/CustomAlert';
+
+import { MotiView } from 'moti';
+import LottieView from 'lottie-react-native';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -45,6 +48,7 @@ export default function HomeScreen({ navigation }: Props) {
       return response.documents as unknown as TrainingLog[];
     },
     enabled: !!user,
+    staleTime: 60000, // 1 minute - reduces unnecessary refetches for better performance
   });
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo>({
     isPremium: false,
@@ -55,7 +59,7 @@ export default function HomeScreen({ navigation }: Props) {
   });
   const [belt, setBelt] = useState<BeltLevel>('white');
   const [stripes, setStripes] = useState<Stripes>(0);
-  const [showPROModal, setShowPROModal] = useState(false);
+  // PRO Modal removed for free launch - subscription features disabled
   
   // Custom Alert State
   const [alert, setAlert] = useState({ 
@@ -94,8 +98,12 @@ export default function HomeScreen({ navigation }: Props) {
     }, [])
   );
 
-  const onRefresh = useCallback(() => {
-    refetch();
+  const onRefresh = useCallback(async () => {
+    // Haptic feedback on start
+    haptics.medium();
+    await refetch();
+    // Haptic feedback on completion
+    haptics.success();
   }, [refetch]);
 
   const handleLogout = async () => {
@@ -164,8 +172,11 @@ export default function HomeScreen({ navigation }: Props) {
     });
   };
 
-  const renderLogItem = ({ item }: { item: TrainingLog }) => (
-    <View 
+  const renderTrainingCard = ({ item, index }: { item: TrainingLog, index: number }) => (
+    <MotiView 
+      from={{ opacity: 0, translateY: 20 }}
+      animate={{ opacity: 1, translateY: 0 }}
+      transition={{ type: 'timing', duration: 500, delay: index * 100 }}
       className="mb-4 rounded-2xl overflow-hidden"
       style={{
         backgroundColor: '#151b2e',
@@ -247,11 +258,11 @@ export default function HomeScreen({ navigation }: Props) {
           </Text>
         ) : null}
       </TouchableOpacity>
-    </View>
+    </MotiView>
   );
 
   return (
-    <View className="flex-1 bg-dark-bg">
+    <View className="flex-1 bg-dark-bg" style={{ maxWidth: 700, width: '100%', alignSelf: 'center' }}>
       <View className="px-4 pt-14 pb-3">
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center gap-3">
@@ -295,39 +306,8 @@ export default function HomeScreen({ navigation }: Props) {
 
       {/* Main Content */}
       <View className="flex-1 px-4">
-      {/* Action Buttons Row with PRO Badge */}
+      {/* Action Buttons Row - PRO Badge removed for free launch */}
       <View className="flex-row gap-2 mb-6 justify-end items-center">
-        {/* PRO Compact Badge (only show for PRO users) - CLICKABLE */}
-        {checkSubscription(user?.prefs).isPro && (
-          <TouchableOpacity
-            onPress={() => {
-              haptics.medium();
-              setShowPROModal(true);
-            }}
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2 rounded-full flex-row items-center gap-2 border border-purple-400/30"
-            style={{
-              shadowColor: '#a855f7',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.5,
-              shadowRadius: 8,
-              elevation: 5,
-            }}
-            activeOpacity={0.7}
-            accessibilityLabel="PRO Status"
-            accessibilityRole="button"
-          >
-            <LinearGradient
-              colors={['#9333ea', '#7c3aed']}
-              className="absolute inset-0 rounded-full"
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            />
-            <View className="bg-white/20 p-1 rounded-full">
-              <TrendingUp size={12} color="#ffffff" />
-            </View>
-            <Text className="text-white font-inter-bold text-xs tracking-wide">{t('home.pro_active')}</Text>
-          </TouchableOpacity>
-        )}
         
         <TouchableOpacity
           className="bg-white/10 p-2.5 rounded-full border border-white/10"
@@ -416,19 +396,23 @@ export default function HomeScreen({ navigation }: Props) {
                       <TrendingUp size={18} color="#a855f7" />
                     </View>
                     <View>
-                      <Text className="text-white font-lato text-base font-bold">{t('home.unlimited_tracking')}</Text>
+                      <Text className="text-white font-lato text-base font-bold">
+                        {Platform.OS === 'ios' ? 'Launch Special: Free Access' : t('home.unlimited_tracking')}
+                      </Text>
                       <View className="bg-yellow-500/20 px-2 py-0.5 rounded text-xs border border-yellow-500/30 self-start mt-1">
                         <Text className="text-yellow-400 text-[10px] font-bold">{t('home.recommended')}</Text>
                       </View>
                     </View>
                   </View>
                   <Text className="text-gray-300 font-lato text-xs leading-4 mt-2">
-                    {t('home.unlimited_desc')}
+                    {Platform.OS === 'ios' ? 'Enjoy all PRO features for free!' : t('home.unlimited_desc')}
                   </Text>
                 </View>
                 
                 <View className="bg-white px-4 py-2.5 rounded-xl shadow-lg">
-                  <Text className="text-purple-900 font-lato-bold text-xs">{t('home.upgrade_btn')}</Text>
+                  <Text className="text-purple-900 font-lato-bold text-xs">
+                    {Platform.OS === 'ios' ? 'View' : t('home.upgrade_btn')}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -442,35 +426,67 @@ export default function HomeScreen({ navigation }: Props) {
       ) : (
         <FlatList
           data={logs}
-          renderItem={renderLogItem}
+          renderItem={renderTrainingCard}
           keyExtractor={(item) => item.$id}
+          contentContainerStyle={{ paddingBottom: 100, paddingTop: 20, maxWidth: 800, alignSelf: 'center', width: '100%' }}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl 
               refreshing={refreshing} 
               onRefresh={onRefresh}
-              tintColor="#8b5cf6"
-              colors={['#8b5cf6', '#ec4899']}  // Android gradient
-              progressBackgroundColor="#151b2e"
-              title={t('home.pull_to_refresh')}  // iOS
-              titleColor="#8b5cf6"
+              tintColor="transparent" // Hide default spinner
+              colors={['transparent']} // Hide default spinner on Android
+              style={{ backgroundColor: 'transparent' }}
             />
           }
+          ListHeaderComponent={
+            <View className="mb-6 px-4">
+              {refreshing && (
+                <View className="items-center justify-center py-4 h-20">
+                  <LottieView
+                    autoPlay
+                    loop
+                    style={{ width: 100, height: 100 }}
+                    // Using a default loading animation if no custom one exists
+                    // You can replace this with require('../assets/animations/belt-tying.json')
+                    source={require('../../assets/loading.json')} 
+                  />
+                </View>
+              )}
+            </View>
+          }
           ListEmptyComponent={
-            <View className="items-center mt-10">
-              <Text className="text-gray-400 text-lg">{t('home.no_trainings')}</Text>
-              <Text className="text-gray-500 text-sm mt-2">{t('home.add_first')}</Text>
+            <View className="items-center mt-20 px-6">
+              <View className="bg-white/5 p-6 rounded-full mb-4 border border-white/10">
+                <Calendar size={48} color="#6b7280" />
+              </View>
+              <Text className="text-white font-bebas text-2xl tracking-wide mb-2">
+                NO TRAININGS LOGGED
+              </Text>
+              <Text className="text-gray-400 text-center font-lato text-sm mb-8 leading-5">
+                Start tracking your BJJ journey! Log your classes, sparring sessions, and competition results.
+              </Text>
+              
+              <TouchableOpacity
+                onPress={() => {
+                  haptics.medium();
+                  navigation.navigate('AddLog');
+                }}
+                className="bg-purple-600 px-8 py-3 rounded-xl border border-purple-400/30 shadow-lg shadow-purple-500/20"
+                activeOpacity={0.8}
+              >
+                <View className="flex-row items-center gap-2">
+                  <Plus size={20} color="#fff" />
+                  <Text className="text-white font-inter-bold text-base">Log First Training</Text>
+                </View>
+              </TouchableOpacity>
             </View>
           }
         />
       )}
       </View>
       
-      {/* PRO Details Modal */}
-      <PRODetailsModal 
-        visible={showPROModal}
-        onClose={() => setShowPROModal(false)}
-        renewalDate={(user?.prefs as any)?.subscription_renewal_date}
-      />
+      {/* PRO Details Modal removed for free launch */}
 
       {/* Custom Alert */}
       <CustomAlert

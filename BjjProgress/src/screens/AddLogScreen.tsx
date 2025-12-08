@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Switch, KeyboardAvoidingView, Platform } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { databases, appwriteConfig } from '../lib/appwrite';
@@ -13,6 +13,7 @@ import { Trophy, MapPin, Scale, Shield, Zap, Calendar, Clock, FileText, CheckCir
 import { haptics } from '../utils/haptics';
 import { shadows } from '../styles/shadows';
 import { checkSubscription } from '../utils/subscription';
+import ConfettiCannon from 'react-native-confetti-cannon';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddLog'>;
 
@@ -36,7 +37,7 @@ export default function AddLogScreen({ navigation, route }: Props) {
   const { control, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toTimeString().slice(0, 5), // Fixed: Use HH:MM format consistently
       duration: '90',
       type: 'GI',
       notes: '',
@@ -50,13 +51,14 @@ export default function AddLogScreen({ navigation, route }: Props) {
   const [competitionStyle, setCompetitionStyle] = useState<'GI' | 'NO-GI'>('GI');
   const [sparringSessions, setSparringSessions] = useState<Omit<SparringSession, 'training_log_id'>[]>([]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const confettiRef = useRef<ConfettiCannon>(null);
 
   useEffect(() => {
     if (logToEdit) {
       const dateObj = new Date(logToEdit.date);
       reset({
         date: dateObj.toISOString().split('T')[0],
-        time: dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: dateObj.toTimeString().slice(0, 5), // Fixed: Use HH:MM format consistently
         duration: logToEdit.duration.toString(),
         type: logToEdit.type,
         notes: logToEdit.notes,
@@ -139,14 +141,22 @@ export default function AddLogScreen({ navigation, route }: Props) {
     if (!user) return;
     setLoading(true);
     try {
-      const dateString = data.date;
-      const timeString = data.time;
-      const dateTime = new Date(`${dateString}T${timeString}:00`);
+      // Robust Date Parsing
+      const [year, month, day] = data.date.split('-').map(Number);
+      const [hours, minutes] = data.time.split(':').map(Number);
+      
+      // Create date object safely
+      const dateTime = new Date(year, month - 1, day, hours, minutes);
+      
+      // Fallback if invalid
+      if (isNaN(dateTime.getTime())) {
+        throw new Error('Invalid date or time format');
+      }
 
       const logData = {
         user_id: user.$id,
         date: dateTime.toISOString(),
-        duration: parseInt(data.duration),
+        duration: parseInt(data.duration) || 0,
         type: trainingType,
         notes: data.notes,
         reflection: data.reflection,
@@ -155,7 +165,7 @@ export default function AddLogScreen({ navigation, route }: Props) {
         tournament_name: data.tournament_name,
         weight_class: data.weight_class,
         location: data.location,
-        competition_style: trainingType === 'COMP' ? competitionStyle : undefined,
+        competition_style: trainingType === 'COMP' ? competitionStyle : null, // Explicitly null if not COMP
       };
 
       let trainingId: string;
@@ -213,11 +223,22 @@ export default function AddLogScreen({ navigation, route }: Props) {
 
       haptics.success();
       setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
-      navigation.goBack();
+      confettiRef.current?.start();
+      
+      // Delay navigation to show success state
+      setTimeout(() => {
+        setShowSuccessToast(false);
+        navigation.goBack();
+      }, 2000);
     } catch (error: any) {
-      console.error(error);
-      Alert.alert('Error', error.message || 'Failed to save training');
+      console.error('Training save error details:', {
+        message: error.message,
+        code: error.code,
+        type: error.type,
+        response: error.response,
+        full: JSON.stringify(error),
+      });
+      Alert.alert('Error', error.message || 'Failed to save training. Check console for details.');
     } finally {
       setLoading(false);
     }
@@ -226,8 +247,8 @@ export default function AddLogScreen({ navigation, route }: Props) {
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1, backgroundColor: '#0a0e1a' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       {/* Custom Header */}
       <View className="px-4 pt-14 pb-3 flex-row items-center gap-4">
@@ -250,6 +271,7 @@ export default function AddLogScreen({ navigation, route }: Props) {
         className="flex-1 bg-dark-bg"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
         contentContainerStyle={{ paddingBottom: 150 }}
       >
       <View className="p-4">
@@ -303,32 +325,34 @@ export default function AddLogScreen({ navigation, route }: Props) {
 
         {/* Competition Style Toggle (Gi vs No-Gi) */}
         {trainingType === 'COMP' && (
-          <View className="mb-6 flex-row bg-white/5 p-1 rounded-xl border border-white/10">
-            <TouchableOpacity
-              onPress={() => setCompetitionStyle('GI')}
-              className={`flex-1 py-2 rounded-lg items-center ${
-                competitionStyle === 'GI' ? 'bg-blue-600' : ''
-              }`}
-            >
-              <Text className={`font-lato-bold text-sm ${
-                competitionStyle === 'GI' ? 'text-white' : 'text-gray-400'
-              }`}>
-                GI
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setCompetitionStyle('NO-GI')}
-              className={`flex-1 py-2 rounded-lg items-center ${
-                competitionStyle === 'NO-GI' ? 'bg-orange-600' : ''
-              }`}
-            >
-              <Text className={`font-lato-bold text-sm ${
-                competitionStyle === 'NO-GI' ? 'text-white' : 'text-gray-400'
-              }`}>
-                NO-GI
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <>
+            <View className="mb-6 flex-row bg-white/5 p-1 rounded-xl border border-white/10">
+              <TouchableOpacity
+                onPress={() => setCompetitionStyle('GI')}
+                className={`flex-1 py-2 rounded-lg items-center ${
+                  competitionStyle === 'GI' ? 'bg-blue-600' : ''
+                }`}
+              >
+                <Text className={`font-lato-bold text-sm ${
+                  competitionStyle === 'GI' ? 'text-white' : 'text-gray-400'
+                }`}>
+                  GI
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setCompetitionStyle('NO-GI')}
+                className={`flex-1 py-2 rounded-lg items-center ${
+                  competitionStyle === 'NO-GI' ? 'bg-orange-600' : ''
+                }`}
+              >
+                <Text className={`font-lato-bold text-sm ${
+                  competitionStyle === 'NO-GI' ? 'text-white' : 'text-gray-400'
+                }`}>
+                  NO-GI
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
         )}
           {/* Date & Time Section - Glassmorphic Inputs */}
         <View className="mb-6">
@@ -500,6 +524,7 @@ export default function AddLogScreen({ navigation, route }: Props) {
               notes={session.notes}
               submissions_list={typeof session.submissions_list === 'string' ? session.submissions_list : JSON.stringify(session.submissions_list || [])}
               sweeps_list={typeof session.sweeps_list === 'string' ? session.sweeps_list : JSON.stringify(session.sweeps_list || [])}
+              positions_list={typeof session.positions_list === 'string' ? session.positions_list : JSON.stringify(session.positions_list || [])}
               onUpdate={(updates) => updateSparringSession(index, updates)}
               onDelete={() => deleteSparringSession(index)}
             />
@@ -606,6 +631,14 @@ export default function AddLogScreen({ navigation, route }: Props) {
           </View>
         </View>
       )}
+      {/* Confetti Cannon */}
+      <ConfettiCannon
+        count={200}
+        origin={{x: -10, y: 0}}
+        autoStart={false}
+        ref={confettiRef}
+        fadeOut={true}
+      />
      </ScrollView>
     </KeyboardAvoidingView>
   );

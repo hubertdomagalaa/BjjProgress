@@ -104,19 +104,21 @@ export default function PRODetailsModal({ visible, onClose, renewalDate }: PRODe
           </LinearGradient>
 
           <ScrollView className="p-6" showsVerticalScrollIndicator={false}>
-            {/* Renewal Date Section */}
-            <View className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
-              <View className="flex-row items-center gap-2 mb-2">
-                <Calendar size={18} color="#3b82f6" />
-                <Text className="text-blue-400 font-inter-bold text-sm">Next Payment</Text>
+            {/* Renewal Date Section - Only show if active */}
+            {renewalDate && (
+              <View className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
+                <View className="flex-row items-center gap-2 mb-2">
+                  <Calendar size={18} color="#3b82f6" />
+                  <Text className="text-blue-400 font-inter-bold text-sm">Next Payment</Text>
+                </View>
+                <Text className="text-white font-inter-bold text-lg">
+                  {formatRenewalDate(renewalDate)}
+                </Text>
+                <Text className="text-gray-400 font-inter text-xs mt-1">
+                  Your subscription will automatically renew
+                </Text>
               </View>
-              <Text className="text-white font-inter-bold text-lg">
-                {formatRenewalDate(renewalDate)}
-              </Text>
-              <Text className="text-gray-400 font-inter text-xs mt-1">
-                Your subscription will automatically renew
-              </Text>
-            </View>
+            )}
 
             {/* Features List */}
             <Text className="text-white font-inter-bold text-base mb-4">Your PRO Benefits:</Text>

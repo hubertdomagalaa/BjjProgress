@@ -2,8 +2,9 @@
   "expo": {
     "name": "BjjProgress",
     "slug": "BjjProgress",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
+    "scheme": "bjjprogress",
     "icon": "./assets/appicon.jpg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -13,10 +14,11 @@
       "backgroundColor": "#0f172a"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.hubertdomagala.bjjprogress",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app uses the camera to let you upload profile photos or scan credit cards for payments."
       }
     },
     "android": {
@@ -24,15 +26,30 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.hubertdomagala.bjjprogress",
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "package": "com.hubertdomagala.bjjprogress"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "./plugins/withAndroidGradleProperties",
+      "expo-font",
+      "expo-localization",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.24",
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "gradleProperties": {
+                "org.gradle.jvmargs": "-Xmx4096m -XX:MaxMetaspaceSize=512m",
+                "suppressKotlinVersionCompatibilityCheck": "true"
+            }
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {

@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { Trophy, Medal, XCircle, MinusCircle } from 'lucide-react-native';
+import { Sweep, SWEEP_POINTS, GuardPosition } from '../constants/bjj-guards';
+import { PositionScore, POINT_POSITIONS, PositionType } from '../constants/bjj-positions';
+import { GuardPicker } from './GuardPicker';
+import { PositionPicker } from './PositionPicker';
+import TechniquePicker from './TechniquePicker';
+import { haptics } from '../utils/haptics';
+import { MotiView } from 'moti';
 
 interface Props {
   number: number;
@@ -12,6 +19,7 @@ interface Props {
   notes?: string;
   submissions_list?: string; // JSON string of SubmissionEvent[]
   sweeps_list?: string; // JSON string of SweepEvent[]
+  positions_list?: string; // JSON string of PositionScore[]
   onUpdate: (updates: any) => void;
   onDelete: () => void;
 }
@@ -29,8 +37,6 @@ const METHODS = [
   'Submission', 'Points', 'Decision', 'DQ'
 ];
 
-import TechniquePicker from './TechniquePicker';
-
 export default function MatchTile({
   number,
   result,
@@ -41,15 +47,101 @@ export default function MatchTile({
   notes,
   submissions_list,
   sweeps_list,
+  positions_list,
   onUpdate,
   onDelete,
 }: Props) {
   const [showTechniquePicker, setShowTechniquePicker] = useState(false);
+  const [showGuardPicker, setShowGuardPicker] = useState(false);
+  const [sweepType, setSweepType] = useState<'given' | 'received'>('given');
+  const [showPositionPicker, setShowPositionPicker] = useState(false);
+  const [positionType, setPositionType] = useState<'me' | 'opponent'>('me');
   
   // Parse submissions list
   const submissions = submissions_list ? JSON.parse(submissions_list) : [];
   const winningSubmission = submissions.find((s: any) => s.type === 'given')?.technique;
   const losingSubmission = submissions.find((s: any) => s.type === 'received')?.technique;
+
+  // Parse sweeps list
+  let sweeps: Sweep[] = [];
+  try {
+    if (typeof sweeps_list === 'string' && sweeps_list.length > 2) {
+      sweeps = JSON.parse(sweeps_list);
+    }
+  } catch (e) {
+    sweeps = [];
+  }
+
+  // Parse positions list
+  let positions: PositionScore[] = [];
+  try {
+    if (typeof positions_list === 'string' && positions_list.length > 2) {
+      positions = JSON.parse(positions_list);
+    }
+  } catch (e) {
+    positions = [];
+  }
+
+  // Calculate points dynamically
+  const sweepMyPoints = sweeps.filter(s => s.type === 'given').length * SWEEP_POINTS;
+  const sweepOppPoints = sweeps.filter(s => s.type === 'received').length * SWEEP_POINTS;
+
+  const posMyPoints = positions
+    .filter(p => p.type === 'me')
+    .reduce((sum, p) => sum + POINT_POSITIONS[p.position].points, 0);
+  
+  const posOppPoints = positions
+    .filter(p => p.type === 'opponent')
+    .reduce((sum, p) => sum + POINT_POSITIONS[p.position].points, 0);
+
+  const calculatedMyPoints = sweepMyPoints + posMyPoints;
+  const calculatedOppPoints = sweepOppPoints + posOppPoints;
+
+  // Sync calculated points with parent state if they differ
+  useEffect(() => {
+    if (calculatedMyPoints !== points_my || calculatedOppPoints !== points_opp) {
+      onUpdate({
+        points_my: calculatedMyPoints,
+        points_opp: calculatedOppPoints
+      });
+    }
+  }, [calculatedMyPoints, calculatedOppPoints]);
+
+  const addSweep = (guard: GuardPosition) => {
+    const newSweep: Sweep = {
+      guard,
+      type: sweepType,
+      timestamp: new Date().toISOString(),
+    };
+    const newSweeps = [...sweeps, newSweep];
+    onUpdate({ sweeps_list: JSON.stringify(newSweeps) });
+    setShowGuardPicker(false);
+    haptics.heavy();
+  };
+
+  const removeSweep = (index: number) => {
+    const newSweeps = sweeps.filter((_, i) => i !== index);
+    onUpdate({ sweeps_list: JSON.stringify(newSweeps) });
+    haptics.light();
+  };
+
+  const addPosition = (position: PositionType) => {
+    const newPosition: PositionScore = {
+      position,
+      type: positionType,
+      timestamp: new Date().toISOString(),
+    };
+    const newPositions = [...positions, newPosition];
+    onUpdate({ positions_list: JSON.stringify(newPositions) });
+    setShowPositionPicker(false);
+    haptics.heavy();
+  };
+
+  const removePosition = (index: number) => {
+    const newPositions = positions.filter((_, i) => i !== index);
+    onUpdate({ positions_list: JSON.stringify(newPositions) });
+    haptics.light();
+  };
 
   return (
     <>
@@ -79,7 +171,10 @@ export default function MatchTile({
       {/* Result Toggle */}
       <View className="flex-row gap-2 mb-4">
         <TouchableOpacity
-          onPress={() => onUpdate({ result: 'win' })}
+          onPress={() => {
+            onUpdate({ result: 'win' });
+            haptics.medium();
+          }}
           className={`flex-1 py-3 rounded-lg border items-center justify-center ${
             result === 'win'
               ? 'bg-yellow-500/20 border-yellow-500'
@@ -92,7 +187,10 @@ export default function MatchTile({
         </TouchableOpacity>
         
         <TouchableOpacity
-          onPress={() => onUpdate({ result: 'loss' })}
+          onPress={() => {
+            onUpdate({ result: 'loss' });
+            haptics.medium();
+          }}
           className={`flex-1 py-3 rounded-lg border items-center justify-center ${
             result === 'loss'
               ? 'bg-red-500/20 border-red-500'
@@ -105,7 +203,10 @@ export default function MatchTile({
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => onUpdate({ result: 'draw' })}
+          onPress={() => {
+            onUpdate({ result: 'draw' });
+            haptics.medium();
+          }}
           className={`flex-1 py-3 rounded-lg border items-center justify-center ${
             result === 'draw'
               ? 'bg-gray-500/20 border-gray-500'
@@ -197,63 +298,122 @@ export default function MatchTile({
         )}
       </View>
 
-      {/* Sweeps */}
+      {/* ADVANCED SCORING SECTION */}
       <View className="mb-4">
-        <Text className="text-gray-400 text-xs font-lato mb-2">SWEEPS</Text>
-        <View className="flex-row gap-3">
-          <TouchableOpacity
-            onPress={() => {
-              const currentSweeps = sweeps_list ? JSON.parse(sweeps_list) : [];
-              const newSweeps = [...currentSweeps, { name: 'Sweep', type: 'my' }];
-              onUpdate({ sweeps_list: JSON.stringify(newSweeps) });
-            }}
-            className="flex-1 bg-blue-500/20 border border-blue-500/30 p-3 rounded-lg flex-row items-center justify-between"
-          >
-            <Text className="text-blue-300 font-lato-bold text-xs">MY SWEEPS</Text>
-            <Text className="text-white font-bebas text-xl">
-              {(sweeps_list ? JSON.parse(sweeps_list) : []).filter((s: any) => s.type === 'my').length}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => {
-              const currentSweeps = sweeps_list ? JSON.parse(sweeps_list) : [];
-              const newSweeps = [...currentSweeps, { name: 'Sweep', type: 'opp' }];
-              onUpdate({ sweeps_list: JSON.stringify(newSweeps) });
-            }}
-            className="flex-1 bg-red-500/20 border border-red-500/30 p-3 rounded-lg flex-row items-center justify-between"
-          >
-            <Text className="text-red-300 font-lato-bold text-xs">OPP SWEEPS</Text>
-            <Text className="text-white font-bebas text-xl">
-              {(sweeps_list ? JSON.parse(sweeps_list) : []).filter((s: any) => s.type === 'opp').length}
-            </Text>
-          </TouchableOpacity>
+        <Text className="text-white font-bebas text-lg mb-3 tracking-wider">SCORING & STATS</Text>
+        
+        {/* Score Board (Read Only - Calculated) */}
+        <View className="bg-black/40 p-4 rounded-xl border border-white/10 mb-4">
+          <Text className="text-gray-400 text-xs font-lato text-center mb-2">LIVE SCORE</Text>
+          <View className="flex-row items-center justify-center gap-8">
+            <View className="items-center">
+              <Text className="text-gray-500 text-[10px] mb-1 font-inter-bold">ME</Text>
+              <Text className="text-white font-bebas text-5xl">{calculatedMyPoints}</Text>
+            </View>
+            <Text className="text-gray-600 font-bebas text-3xl">-</Text>
+            <View className="items-center">
+              <Text className="text-gray-500 text-[10px] mb-1 font-inter-bold">OPP</Text>
+              <Text className="text-white font-bebas text-5xl">{calculatedOppPoints}</Text>
+            </View>
+          </View>
         </View>
-      </View>
 
-      {/* Score Board */}
-      <View className="bg-black/20 p-3 rounded-lg border border-white/5 mb-4">
-        <Text className="text-gray-400 text-xs font-lato text-center mb-2">SCORE BOARD</Text>
-        <View className="flex-row items-center justify-center gap-6">
-          <View className="items-center">
-            <Text className="text-gray-500 text-[10px] mb-1">ME</Text>
-            <TextInput
-              className="bg-white/10 w-12 h-10 rounded text-center text-white font-bebas text-xl"
-              keyboardType="numeric"
-              value={points_my.toString()}
-              onChangeText={(t) => onUpdate({ points_my: parseInt(t) || 0 })}
-            />
+        {/* Sweeps Tracking */}
+        <View className="mb-4">
+          <Text className="text-gray-400 text-xs font-lato mb-2">SWEEPS</Text>
+          <View className="flex-row gap-3 mb-3">
+            <TouchableOpacity
+              onPress={() => {
+                setSweepType('given');
+                setShowGuardPicker(true);
+              }}
+              className="flex-1 bg-green-500/20 border border-green-500/30 p-3 rounded-lg flex-row items-center justify-between"
+            >
+              <Text className="text-green-300 font-lato-bold text-xs">+ I Swept</Text>
+              <Text className="text-white font-bebas text-xl">{sweeps.filter(s => s.type === 'given').length}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setSweepType('received');
+                setShowGuardPicker(true);
+              }}
+              className="flex-1 bg-red-500/20 border border-red-500/30 p-3 rounded-lg flex-row items-center justify-between"
+            >
+              <Text className="text-red-300 font-lato-bold text-xs">+ Got Swept</Text>
+              <Text className="text-white font-bebas text-xl">{sweeps.filter(s => s.type === 'received').length}</Text>
+            </TouchableOpacity>
           </View>
-          <Text className="text-gray-600 font-bebas text-xl">-</Text>
-          <View className="items-center">
-            <Text className="text-gray-500 text-[10px] mb-1">OPP</Text>
-            <TextInput
-              className="bg-white/10 w-12 h-10 rounded text-center text-white font-bebas text-xl"
-              keyboardType="numeric"
-              value={points_opp.toString()}
-              onChangeText={(t) => onUpdate({ points_opp: parseInt(t) || 0 })}
-            />
+          
+          {/* Sweeps List */}
+          {sweeps.length > 0 && (
+            <View className="bg-white/5 p-3 rounded-lg">
+              {sweeps.map((sweep, index) => (
+                <View key={index} className="flex-row justify-between items-center py-2 border-b border-white/10 last:border-0">
+                  <View>
+                    <Text className={`font-lato-bold ${sweep.type === 'given' ? 'text-green-400' : 'text-red-400'}`}>
+                      {sweep.guard}
+                    </Text>
+                    <Text className="text-gray-500 text-xs">
+                      {sweep.type === 'given' ? '+2 pts (me)' : '+2 pts (opp)'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => removeSweep(index)} className="bg-white/10 p-1 rounded">
+                    <XCircle size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Positions Tracking */}
+        <View className="mb-4">
+          <Text className="text-gray-400 text-xs font-lato mb-2">POSITIONS</Text>
+          <View className="flex-row gap-3 mb-3">
+            <TouchableOpacity
+              onPress={() => {
+                setPositionType('me');
+                setShowPositionPicker(true);
+              }}
+              className="flex-1 bg-blue-500/20 border border-blue-500/30 p-3 rounded-lg flex-row items-center justify-between"
+            >
+              <Text className="text-blue-300 font-lato-bold text-xs">+ I Scored</Text>
+              <Text className="text-white font-bebas text-xl">{posMyPoints}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setPositionType('opponent');
+                setShowPositionPicker(true);
+              }}
+              className="flex-1 bg-orange-500/20 border border-orange-500/30 p-3 rounded-lg flex-row items-center justify-between"
+            >
+              <Text className="text-orange-300 font-lato-bold text-xs">+ Opp Scored</Text>
+              <Text className="text-white font-bebas text-xl">{posOppPoints}</Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Positions List */}
+          {positions.length > 0 && (
+            <View className="bg-white/5 p-3 rounded-lg">
+              {positions.map((pos, index) => (
+                <View key={index} className="flex-row justify-between items-center py-2 border-b border-white/10 last:border-0">
+                  <View>
+                    <Text className={`font-lato-bold ${pos.type === 'me' ? 'text-blue-400' : 'text-orange-400'}`}>
+                      {POINT_POSITIONS[pos.position].name}
+                    </Text>
+                    <Text className="text-gray-500 text-xs">
+                      +{POINT_POSITIONS[pos.position].points} pts ({pos.type === 'me' ? 'me' : 'opp'})
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => removePosition(index)} className="bg-white/10 p-1 rounded">
+                    <XCircle size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
       </View>
 
@@ -274,20 +434,32 @@ export default function MatchTile({
       visible={showTechniquePicker}
       onClose={() => setShowTechniquePicker(false)}
       onSelect={(tech) => {
-        // Determine type based on result
         const type = result === 'win' ? 'given' : 'received';
-        
-        // Create new submissions list with just this one entry (since matches usually end with 1 sub)
         const newSubmissions = [{ technique: tech.name, type }];
-        
         onUpdate({ 
           submissions_list: JSON.stringify(newSubmissions),
-          // Also update counts for compatibility
           submission_given: type === 'given' ? 1 : 0,
           submission_received: type === 'received' ? 1 : 0
         });
         setShowTechniquePicker(false);
       }}
+    />
+
+    <GuardPicker
+      visible={showGuardPicker}
+      title={sweepType === 'given' ? 'I Swept From...' : 'Got Swept From...'}
+      subtitle="Select guard position"
+      type={sweepType === 'given' ? 'bottom' : 'top'}
+      onSelect={addSweep}
+      onClose={() => setShowGuardPicker(false)}
+    />
+
+    <PositionPicker
+      visible={showPositionPicker}
+      title={positionType === 'me' ? 'I Scored...' : 'Opponent Scored...'}
+      subtitle="Select position"
+      onSelect={addPosition}
+      onClose={() => setShowPositionPicker(false)}
     />
     </>
   );

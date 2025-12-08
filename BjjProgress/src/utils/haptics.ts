@@ -1,24 +1,70 @@
 import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
 
 /**
- * Haptic feedback utilities for tactile user interactions
+ * Haptic Feedback Utility
+ * Provides a consistent interface for triggering haptics across the app.
+ * Safe to call on any platform (web will just ignore).
  */
+
 export const haptics = {
-  /** Light tap - for navigation and card taps */
-  light: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light),
-  
-  /** Medium impact - for selections and toggles */
-  medium: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium),
-  
-  /** Heavy impact - for important actions */
-  heavy: () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy),
-  
-  /** Success notification - for successful saves/completions */
-  success: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success),
-  
-  /** Warning notification - for warnings */
-  warning: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning),
-  
-  /** Error notification - for errors */
-  error: () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error),
+  /**
+   * Light impact (e.g., toggle switch, minor selection)
+   */
+  light: async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {
+      // Ignore errors on unsupported devices
+    }
+  },
+
+  /**
+   * Medium impact (e.g., button press, card tap)
+   */
+  medium: async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (e) {
+      // Ignore
+    }
+  },
+
+  /**
+   * Heavy impact (e.g., delete action, major error)
+   */
+  heavy: async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    } catch (e) {
+      // Ignore
+    }
+  },
+
+  /**
+   * Success notification (e.g., saved log, completed task)
+   */
+  success: async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (e) {
+      // Ignore
+    }
+  },
+
+  /**
+   * Error notification (e.g., validation failed)
+   */
+  error: async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } catch (e) {
+      // Ignore
+    }
+  },
 };
