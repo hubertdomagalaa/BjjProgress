@@ -13,7 +13,7 @@ import { Trophy, MapPin, Scale, Shield, Zap, Calendar, Clock, FileText, CheckCir
 import { haptics } from '../utils/haptics';
 import { shadows } from '../styles/shadows';
 import { checkSubscription } from '../utils/subscription';
-import ConfettiCannon from 'react-native-confetti-cannon';
+// Confetti removed for cleaner UX
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddLog'>;
 
@@ -51,7 +51,6 @@ export default function AddLogScreen({ navigation, route }: Props) {
   const [competitionStyle, setCompetitionStyle] = useState<'GI' | 'NO-GI'>('GI');
   const [sparringSessions, setSparringSessions] = useState<Omit<SparringSession, 'training_log_id'>[]>([]);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const confettiRef = useRef<ConfettiCannon>(null);
 
   useEffect(() => {
     if (logToEdit) {
@@ -61,8 +60,8 @@ export default function AddLogScreen({ navigation, route }: Props) {
         time: dateObj.toTimeString().slice(0, 5), // Fixed: Use HH:MM format consistently
         duration: logToEdit.duration.toString(),
         type: logToEdit.type,
-        notes: logToEdit.notes,
-        reflection: logToEdit.reflection,
+        notes: logToEdit.notes || '',
+        reflection: logToEdit.reflection || '',
         tournament_name: logToEdit.tournament_name,
         weight_class: logToEdit.weight_class,
         location: logToEdit.location,
@@ -223,7 +222,6 @@ export default function AddLogScreen({ navigation, route }: Props) {
 
       haptics.success();
       setShowSuccessToast(true);
-      confettiRef.current?.start();
       
       // Delay navigation to show success state
       setTimeout(() => {
@@ -631,14 +629,6 @@ export default function AddLogScreen({ navigation, route }: Props) {
           </View>
         </View>
       )}
-      {/* Confetti Cannon */}
-      <ConfettiCannon
-        count={200}
-        origin={{x: -10, y: 0}}
-        autoStart={false}
-        ref={confettiRef}
-        fadeOut={true}
-      />
      </ScrollView>
     </KeyboardAvoidingView>
   );

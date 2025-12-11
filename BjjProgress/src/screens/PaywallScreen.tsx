@@ -7,11 +7,12 @@ import { useStripe } from '@stripe/stripe-react-native';
 import { useAuth } from '../context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
+import Constants from 'expo-constants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Paywall'>;
 
-const STRIPE_PRO_MONTHLY_PRICE_ID = process.env.EXPO_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID || 'price_1QJzwxB123c7agjhQ4TN4e3o';
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://bjjprogress-backend.vercel.app';
+const STRIPE_PRO_MONTHLY_PRICE_ID = (Constants.expoConfig?.extra?.stripeProMonthlyPriceId as string) || 'price_1QJzwxB123c7agjhQ4TN4e3o';
+const BACKEND_URL = (Constants.expoConfig?.extra?.backendUrl as string) || 'https://bjjprogress-backend.vercel.app';
 
 export default function PaywallScreen({ navigation }: Props) {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();

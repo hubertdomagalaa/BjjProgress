@@ -122,54 +122,55 @@ export default function HomeScreen({ navigation }: Props) {
       message: t('home.delete_confirm', { type: logType, date: new Date(logDate).toLocaleDateString() }),
       type: 'error',
       confirmText: t('common.delete'),
-      onConfirm: async () => {
-        try {
-          // Close confirmation alert first
-          setAlert(prev => ({ ...prev, visible: false }));
-          
-          const { sparringCollectionId, databaseId, collectionId } = appwriteConfig;
-
-          if (!databaseId || !collectionId) {
-            throw new Error('Appwrite configuration missing');
-          }
-
-          // Delete sparring sessions first
-          const sparrings = await getSparringsForTraining(logId);
-          
-          if (sparringCollectionId) {
-            for (const sparring of sparrings) {
-              if (sparring.$id) {
-                await databases.deleteDocument(
-                  databaseId,
-                  sparringCollectionId,
-                  sparring.$id
-                );
-              }
-            }
-          }
-          
-          // Delete training log
-          await databases.deleteDocument(
-            databaseId,
-            collectionId,
-            logId
-          );
-          
-          // Refresh list
-          queryClient.invalidateQueries({ queryKey: ['trainingLogs', user?.$id] });
-          
-          // Show success alert
-          setTimeout(() => {
-            showAlert(t('common.success'), t('home.delete_success'), 'success');
-          }, 300);
-        } catch (error) {
-          console.error('Delete error:', error);
-          setTimeout(() => {
-            showAlert(t('common.error'), t('home.delete_error'), 'error');
-          }, 300);
-        }
+      onConfirm: () => {
+        // Close confirmation alert first
+        setAlert(prev => ({ ...prev, visible: false }));
+        
+        // Use requestAnimationFrame to ensure UI updates before async work
+        requestAnimationFrame(() => {
+          performDelete(logId);
+        });
       }
     });
+  };
+
+  const performDelete = async (logId: string) => {
+    try {
+      const { sparringCollectionId, databaseId, collectionId } = appwriteConfig;
+
+      if (!databaseId || !collectionId) {
+        throw new Error('Appwrite configuration missing');
+      }
+
+      // Delete sparring sessions first
+      const sparrings = await getSparringsForTraining(logId);
+      
+      if (sparringCollectionId) {
+        await Promise.all(
+          sparrings
+            .filter(sparring => sparring.$id)
+            .map(sparring => 
+              databases.deleteDocument(databaseId, sparringCollectionId, sparring.$id!)
+            )
+        );
+      }
+      
+      // Delete training log
+      await databases.deleteDocument(
+        databaseId,
+        collectionId,
+        logId
+      );
+      
+      // Refresh list
+      queryClient.invalidateQueries({ queryKey: ['trainingLogs', user?.$id] });
+      
+      // Show success alert
+      showAlert(t('common.success'), t('home.delete_success'), 'success');
+    } catch (error) {
+      console.error('Delete error:', error);
+      showAlert(t('common.error'), t('home.delete_error'), 'error');
+    }
   };
 
   const renderTrainingCard = ({ item, index }: { item: TrainingLog, index: number }) => (
@@ -341,10 +342,10 @@ export default function HomeScreen({ navigation }: Props) {
             <View className="mb-4 bg-blue-500/20 border border-blue-500/50 rounded-xl p-4">
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="text-blue-400 font-inter-bold text-base mb-1">
+                  <Text className="text-blue-400 font-inter-bold text-base mb-1" adjustsFontSizeToFit numberOfLines={2}>
                     {t('home.trial_active', { days: getTrialDaysRemaining((user?.prefs as any)?.trial_end_date), plural: getTrialDaysRemaining((user?.prefs as any)?.trial_end_date) !== 1 ? 's' : '' })}
                   </Text>
-                  <Text className="text-gray-300 font-inter text-sm">
+                  <Text className="text-gray-300 font-inter text-sm" adjustsFontSizeToFit numberOfLines={2}>
                     {t('home.trial_message')}
                   </Text>
                 </View>
@@ -396,7 +397,7 @@ export default function HomeScreen({ navigation }: Props) {
                       <TrendingUp size={18} color="#a855f7" />
                     </View>
                     <View>
-                      <Text className="text-white font-lato text-base font-bold">
+                      <Text className="text-white font-lato text-base font-bold" adjustsFontSizeToFit numberOfLines={2}>
                         {Platform.OS === 'ios' ? 'Launch Special: Free Access' : t('home.unlimited_tracking')}
                       </Text>
                       <View className="bg-yellow-500/20 px-2 py-0.5 rounded text-xs border border-yellow-500/30 self-start mt-1">
@@ -404,7 +405,7 @@ export default function HomeScreen({ navigation }: Props) {
                       </View>
                     </View>
                   </View>
-                  <Text className="text-gray-300 font-lato text-xs leading-4 mt-2">
+                  <Text className="text-gray-300 font-lato text-xs leading-4 mt-2" adjustsFontSizeToFit numberOfLines={2}>
                     {Platform.OS === 'ios' ? 'Enjoy all PRO features for free!' : t('home.unlimited_desc')}
                   </Text>
                 </View>

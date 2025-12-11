@@ -158,24 +158,16 @@ export default function SettingsScreen({ navigation }: Props) {
             <Text className="text-gray-400 font-inter-medium text-sm mb-3 ml-1">
               Legal
             </Text>
-            <View className="bg-dark-card rounded-xl overflow-hidden">
+          <View className="bg-dark-card rounded-xl overflow-hidden">
               <TouchableOpacity
-                onPress={() => Alert.alert(
-                  'Privacy Policy',
-                  'BJJ Progress respects your privacy. We collect minimal data (email for account, training logs you create). Your data is stored securely with Appwrite cloud services. We do not sell or share your personal information with third parties. You can delete your account and all associated data at any time from Settings.',
-                  [{ text: 'OK' }]
-                )}
+                onPress={() => navigation.navigate('PrivacyPolicy')}
                 className="p-4 border-b border-gray-700/50 flex-row justify-between items-center"
               >
                 <Text className="text-white font-inter">Privacy Policy</Text>
                 <ArrowLeft size={16} color="#6B7280" style={{ transform: [{ rotate: '180deg' }] }} />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => Alert.alert(
-                  'Terms of Service',
-                  'By using BJJ Progress, you agree to: (1) Provide accurate information, (2) Use the app for personal training tracking only, (3) Not abuse or attempt to compromise the service. We provide this app as-is without warranties. BJJ Progress may update these terms at any time.',
-                  [{ text: 'OK' }]
-                )}
+                onPress={() => navigation.navigate('Terms')}
                 className="p-4 flex-row justify-between items-center"
               >
                 <Text className="text-white font-inter">Terms of Service</Text>

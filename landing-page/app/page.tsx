@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Download, TrendingUp, Check } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function Home() {
@@ -95,9 +95,9 @@ export default function Home() {
       <footer className="py-12 text-center text-gray-600 text-xs border-t border-white/5">
         <p className="mb-4">&copy; 2025 BJJ Progress.</p>
         <div className="flex justify-center gap-6">
-          <a href="mailto:support@bjjprogress.com" className="hover:text-white transition-colors">Contact</a>
-          <a href="#" className="hover:text-white transition-colors">Privacy</a>
-          <a href="#" className="hover:text-white transition-colors">Terms</a>
+          <a href="mailto:support@bjjprogress.app" className="hover:text-white transition-colors">Contact</a>
+          <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+          <a href="/terms" className="hover:text-white transition-colors">Terms</a>
         </div>
       </footer>
     </main>

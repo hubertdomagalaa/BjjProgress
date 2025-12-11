@@ -2,7 +2,7 @@
   "expo": {
     "name": "BjjProgress",
     "slug": "BjjProgress",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "scheme": "bjjprogress",
     "icon": "./assets/appicon.jpg",
@@ -14,7 +14,8 @@
       "backgroundColor": "#0f172a"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
+      "devices": ["iphone", "ipad"],
       "bundleIdentifier": "com.hubertdomagala.bjjprogress",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,

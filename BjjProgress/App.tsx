@@ -21,6 +21,8 @@ import StatsScreen from './src/screens/StatsScreen';
 import PaywallScreen from './src/screens/PaywallScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
+import TermsScreen from './src/screens/TermsScreen';
 
 import { TrainingLog, RootStackParamList } from './src/types';
 
@@ -35,7 +37,10 @@ import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 import { ActivityIndicator, View } from 'react-native';
 
-const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_YOUR_KEY_HERE';
+import Constants from 'expo-constants';
+
+const STRIPE_PUBLISHABLE_KEY = (Constants.expoConfig?.extra?.stripePublishableKey as string) || 'pk_test_YOUR_KEY_HERE';
+
 
 // Initialize Sentry
 /*
@@ -141,6 +146,8 @@ function AppNavigator() {
         <Stack.Screen name="Paywall" component={PaywallScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="Friends" component={FriendsScreen} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+        <Stack.Screen name="Terms" component={TermsScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

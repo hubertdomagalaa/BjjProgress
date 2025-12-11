@@ -51,4 +51,6 @@ export type RootStackParamList = {
   Paywall: undefined;
   Settings: undefined;
   Friends: undefined;
+  PrivacyPolicy: undefined;
+  Terms: undefined;
 };
