@@ -90,6 +90,44 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
+      {/* Community Section */}
+      <section className="px-6 py-24 bg-[#050a14] border-t border-white/5">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-block p-4 rounded-full bg-blue-500/10 mb-6 border border-blue-500/20">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="32" 
+              height="32" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="#3b82f6" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <path d="m22 2-7 20-4-9-9-4Z"/>
+              <path d="M22 2 11 13"/>
+            </svg>
+          </div>
+          
+          <h2 className="text-3xl font-bold mb-4">Join the Inner Circle</h2>
+          <p className="text-gray-400 mb-8 max-w-xl mx-auto">
+            Shape the future of BJJ Progress. Join our Telegram community to suggest features, 
+            report bugs, and chat with other users.
+          </p>
+          
+          <a 
+            href="https://t.me/bjjprogress" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition-all hover:scale-105"
+          >
+            <span>Join Telegram Chat</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </a>
+        </div>
+      </section>
 
       {/* Minimal Footer */}
       <footer className="py-12 text-center text-gray-600 text-xs border-t border-white/5">
