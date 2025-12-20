@@ -108,7 +108,7 @@ export const checkSubscription = (prefs: any) => {
   // START: Free Tier Launch Strategy
   // We grant access to everyone for v1.0.2 to pass Apple Review and build user base.
   // We verified that HomeScreen has specific iOS UI to show 'Launch Special: Free Access'.
-  const isFreeLaunch = true;
+  const isFreeLaunch = false;
 
   return {
     isPro,

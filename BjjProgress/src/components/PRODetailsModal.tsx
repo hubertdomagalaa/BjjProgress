@@ -148,7 +148,7 @@ export default function PRODetailsModal({ visible, onClose, renewalDate }: PRODe
             {/* Info footer */}
             <View className="mt-6 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
               <Text className="text-yellow-400 font-inter text-xs leading-5">
-                💡 Your subscription is managed through Stripe. You can cancel anytime and continue using PRO features until the end of your billing period.
+                💡 Your subscription is managed through the App Store. You can cancel anytime in Settings → Apple ID → Subscriptions and continue using PRO features until the end of your billing period.
               </Text>
             </View>
 

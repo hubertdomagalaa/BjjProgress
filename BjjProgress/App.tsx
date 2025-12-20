@@ -1,5 +1,5 @@
 import React from 'react';
-import { StripeProvider } from '@stripe/stripe-react-native';
+import { PurchasesProvider } from './src/context/PurchasesContext';
 import './src/global.css';
 import './src/i18n'; // Initialize i18n
 import * as Sentry from '@sentry/react-native';
@@ -37,9 +37,7 @@ import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 import { ActivityIndicator, View } from 'react-native';
 
-import Constants from 'expo-constants';
-
-const STRIPE_PUBLISHABLE_KEY = (Constants.expoConfig?.extra?.stripePublishableKey as string) || 'pk_test_YOUR_KEY_HERE';
+// Stripe removed - using RevenueCat for IAP
 
 
 // Initialize Sentry
@@ -101,11 +99,11 @@ function App() {
       client={queryClient} 
       persistOptions={{ persister }}
     >
-      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+      <PurchasesProvider>
         <AuthProvider>
           <AppNavigator />
         </AuthProvider>
-      </StripeProvider>
+      </PurchasesProvider>
     </PersistQueryClientProvider>
   );
 }

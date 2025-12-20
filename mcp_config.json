@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "expo-docs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "expo-local-docs-mcp"
+      ]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/hubi"
+      ]
+    }
+  }
+}

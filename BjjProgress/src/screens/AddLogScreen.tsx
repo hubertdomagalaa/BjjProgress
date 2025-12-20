@@ -12,7 +12,7 @@ import MatchTile from '../components/MatchTile';
 import { Trophy, MapPin, Scale, Shield, Zap, Calendar, Clock, FileText, CheckCircle, ArrowLeft } from 'lucide-react-native';
 import { haptics } from '../utils/haptics';
 import { shadows } from '../styles/shadows';
-import { checkSubscription } from '../utils/subscription';
+import { usePurchases } from '../context/PurchasesContext';
 // Confetti removed for cleaner UX
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddLog'>;
@@ -46,6 +46,7 @@ export default function AddLogScreen({ navigation, route }: Props) {
   });
 
   const { user } = useAuth();
+  const { isPro: hasAccess } = usePurchases();
   const [loading, setLoading] = useState(false);
   const [trainingType, setTrainingType] = useState<'GI' | 'NO-GI' | 'COMP'>('GI');
   const [competitionStyle, setCompetitionStyle] = useState<'GI' | 'NO-GI'>('GI');
@@ -242,6 +243,7 @@ export default function AddLogScreen({ navigation, route }: Props) {
     }
   };
 
+
   return (
     <KeyboardAvoidingView 
       style={{ flex: 1, backgroundColor: '#0a0e1a' }}
@@ -256,7 +258,6 @@ export default function AddLogScreen({ navigation, route }: Props) {
             navigation.goBack();
           }}
           className="p-2 -ml-2"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
@@ -269,367 +270,220 @@ export default function AddLogScreen({ navigation, route }: Props) {
         className="flex-1 bg-dark-bg"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        nestedScrollEnabled={true}
         contentContainerStyle={{ paddingBottom: 150 }}
       >
       <View className="p-4">
-        {/* Training Type Toggle - Premium Redesign */}
+        {/* Training Type Toggle */}
         <View className="mb-8 flex-row gap-3">
-          <TouchableOpacity
-            onPress={() => setTrainingType('GI')}
-            className={`flex-1 p-3 rounded-2xl items-center justify-center border ${
-              trainingType === 'GI' 
-                ? 'bg-blue-600/20 border-blue-500' 
-                : 'bg-white/5 border-white/10'
-            }`}
-            style={{ height: 100 }}
-          >
-            <Shield size={32} color={trainingType === 'GI' ? '#60a5fa' : '#64748b'} />
-            <Text className={`mt-2 font-montserrat font-bold text-sm ${trainingType === 'GI' ? 'text-blue-400' : 'text-gray-500'}`}>
-              GI
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setTrainingType('NO-GI')}
-            className={`flex-1 p-3 rounded-2xl items-center justify-center border ${
-              trainingType === 'NO-GI' 
-                ? 'bg-orange-600/20 border-orange-500' 
-                : 'bg-white/5 border-white/10'
-            }`}
-            style={{ height: 100 }}
-          >
-            <Zap size={32} color={trainingType === 'NO-GI' ? '#fb923c' : '#64748b'} />
-            <Text className={`mt-2 font-montserrat font-bold text-sm ${trainingType === 'NO-GI' ? 'text-orange-400' : 'text-gray-500'}`}>
-              NO-GI
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setTrainingType('COMP')}
-            className={`flex-1 p-3 rounded-2xl items-center justify-center border ${
-              trainingType === 'COMP' 
-                ? 'bg-yellow-500/20 border-yellow-500' 
-                : 'bg-white/5 border-white/10'
-            }`}
-            style={{ height: 100 }}
-          >
-            <Trophy size={32} color={trainingType === 'COMP' ? '#eab308' : '#64748b'} />
-            <Text className={`mt-2 font-montserrat font-bold text-sm ${trainingType === 'COMP' ? 'text-yellow-400' : 'text-gray-500'}`}>
-              COMP
-            </Text>
-          </TouchableOpacity>
+          {['GI', 'NO-GI', 'COMP'].map((type) => (
+             <TouchableOpacity
+             key={type}
+             onPress={() => setTrainingType(type as any)}
+             className={`flex-1 p-3 rounded-2xl items-center justify-center border ${
+               trainingType === type 
+                 ? (type === 'GI' ? 'bg-blue-600/20 border-blue-500' : type === 'NO-GI' ? 'bg-orange-600/20 border-orange-500' : 'bg-yellow-500/20 border-yellow-500') 
+                 : 'bg-white/5 border-white/10'
+             }`}
+             style={{ height: 100 }}
+           >
+             {type === 'GI' && <Shield size={32} color={trainingType === 'GI' ? '#60a5fa' : '#64748b'} />}
+             {type === 'NO-GI' && <Zap size={32} color={trainingType === 'NO-GI' ? '#fb923c' : '#64748b'} />}
+             {type === 'COMP' && <Trophy size={32} color={trainingType === 'COMP' ? '#eab308' : '#64748b'} />}
+             <Text className={`mt-2 font-montserrat font-bold text-sm ${
+                trainingType === type 
+                  ? (type === 'GI' ? 'text-blue-400' : type === 'NO-GI' ? 'text-orange-400' : 'text-yellow-400') 
+                  : 'text-gray-500'
+              }`}>
+               {type}
+             </Text>
+           </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Competition Style Toggle (Gi vs No-Gi) */}
-        {trainingType === 'COMP' && (
-          <>
-            <View className="mb-6 flex-row bg-white/5 p-1 rounded-xl border border-white/10">
-              <TouchableOpacity
-                onPress={() => setCompetitionStyle('GI')}
-                className={`flex-1 py-2 rounded-lg items-center ${
-                  competitionStyle === 'GI' ? 'bg-blue-600' : ''
-                }`}
-              >
-                <Text className={`font-lato-bold text-sm ${
-                  competitionStyle === 'GI' ? 'text-white' : 'text-gray-400'
-                }`}>
-                  GI
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setCompetitionStyle('NO-GI')}
-                className={`flex-1 py-2 rounded-lg items-center ${
-                  competitionStyle === 'NO-GI' ? 'bg-orange-600' : ''
-                }`}
-              >
-                <Text className={`font-lato-bold text-sm ${
-                  competitionStyle === 'NO-GI' ? 'text-white' : 'text-gray-400'
-                }`}>
-                  NO-GI
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-          {/* Date & Time Section - Glassmorphic Inputs */}
-        <View className="mb-6">
-          <View className="flex-row gap-4 mb-4">
-            <View className="flex-1">
-              <Text className="text-gray-400 font-lato text-xs mb-2 ml-1">DATE</Text>
-              <View className="flex-row items-center bg-white/5 border border-white/10 rounded-xl px-4 py-3.5">
-                <Calendar size={18} color="#94a3b8" style={{ marginRight: 10 }} />
-                <Controller
+        {/* Date & Time Section */}
+        <View className="mb-8">
+           <View className="flex-row gap-4">
+            <View className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4">
+              <Text className="text-gray-500 text-xs font-bold mb-1">DATE</Text>
+              <Controller
                   control={control}
                   name="date"
-                  rules={{ required: true }}
                   render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      className="flex-1 text-white font-lato text-base"
-                      value={value}
-                      onChangeText={onChange}
-                      placeholder="YYYY-MM-DD"
-                      placeholderTextColor="#64748b"
+                    <TextInput 
+                      value={value} 
+                      onChangeText={onChange} 
+                      className="text-white font-lato text-lg" 
+                      placeholder="YYYY-MM-DD" 
+                      placeholderTextColor="#666" 
                     />
                   )}
-                />
-              </View>
+              />
             </View>
-
-            <View className="flex-1">
-              <Text className="text-gray-400 font-lato text-xs mb-2 ml-1">TIME</Text>
-              <View className="flex-row items-center bg-white/5 border border-white/10 rounded-xl px-4 py-3.5">
-                <Clock size={18} color="#94a3b8" style={{ marginRight: 10 }} />
-                <Controller
+             <View className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4">
+              <Text className="text-gray-500 text-xs font-bold mb-1">TIME</Text>
+              <Controller
                   control={control}
                   name="time"
-                  rules={{ required: true }}
                   render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      className="flex-1 text-white font-lato text-base"
-                      value={value}
-                      onChangeText={onChange}
-                      placeholder="HH:MM"
-                      placeholderTextColor="#64748b"
+                    <TextInput 
+                      value={value} 
+                      onChangeText={onChange} 
+                      className="text-white font-lato text-lg" 
+                      placeholder="HH:MM" 
+                      placeholderTextColor="#666" 
                     />
                   )}
-                />
-              </View>
+              />
             </View>
-          </View>
-
-          {trainingType !== 'COMP' && (
-            <View>
-              <Text className="text-gray-400 font-lato text-xs mb-2 ml-1">DURATION (MIN)</Text>
-              <View className="flex-row items-center bg-white/5 border border-white/10 rounded-xl px-4 py-3.5">
-                <Clock size={18} color="#94a3b8" style={{ marginRight: 10 }} />
-                <Controller
-                  control={control}
-                  name="duration"
-                  rules={{ required: true }}
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      className="flex-1 text-white font-lato text-base"
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="numeric"
-                      placeholder="90"
-                      placeholderTextColor="#64748b"
-                    />
-                  )}
-                />
-              </View>
-            </View>
-          )}
+           </View>
         </View>
 
+        {/* OPEN NOTE SPACE ("Clean Card") */}
+        <View className="mb-10">
+          <View className="bg-[#1a1f2e] border border-white/5 rounded-3xl p-6 shadow-lg">
+             <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-2xl font-bebas text-white tracking-wide">SESSION NOTES</Text>
+             </View>
 
-      {/* Training Notes */}
-      <View className="mb-4">
-        <Text className="text-white font-inter-medium mb-2">Notes</Text>
-        <Controller
-          control={control}
-          name="notes"
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              className="bg-white/10 p-4 rounded-xl text-white font-inter border border-white/10"
-              value={value}
-              onChangeText={onChange}
-              multiline
-              numberOfLines={6}
-              textAlignVertical="top"
-              placeholder="What did you work on today?"
-              placeholderTextColor="#9ca3af"
-              scrollEnabled={false} // Fix for Android scroll issue
-              style={{ minHeight: 200 }}
-            />
-          )}
-        />
-      </View>
+             <Controller
+                control={control}
+                name="notes"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    className="text-white font-lato text-lg leading-7"
+                    value={value}
+                    onChangeText={onChange}
+                    multiline
+                    placeholder="Write your session notes here..."
+                    placeholderTextColor="#64748b"
+                    scrollEnabled={false}
+                    style={{ minHeight: 150 }}
+                  />
+                )}
+             />
+             
+             <View className="h-[1px] bg-white/5 my-6" />
 
-      {/* Reflection Notes */}
-      <View className="mb-4">
-        <Text className="text-white font-inter-medium mb-2">Reflection / Learnings</Text>
-        <Controller
-          control={control}
-          name="reflection"
-          render={({ field: { onChange, value } }) => (
-            <TextInput
-              className="bg-white/10 p-4 rounded-xl text-white font-inter border border-white/10"
-              value={value}
-              onChangeText={onChange}
-              multiline
-              numberOfLines={6}
-              textAlignVertical="top"
-              placeholder="What went well? What to improve?"
-              placeholderTextColor="#9ca3af"
-              scrollEnabled={false} // Fix for Android scroll issue
-              style={{ minHeight: 200 }}
-          />
-          )}
-        />
-      </View>
-
-      {/* Sparrings / Matches Section */}
-      <View className="mb-6">
-        <View className="flex-row justify-between items-center mb-4">
-          <Text className="text-[#fefcfe] text-xl font-lato-bold">
-            {trainingType === 'COMP' ? '🏆 Matches' : '💪 Sparrings'}
-          </Text>
-          <TouchableOpacity
-            onPress={() => {
-              // Check if user has access (PRO or active trial)
-              const { hasAccess } = checkSubscription(user?.prefs);
-              
-              if (!hasAccess) {
-                // Show upgrade alert
-                Alert.alert(
-                  'Sparring Tracking Locked',
-                  'Your trial has ended. Upgrade to PRO to continue tracking your sparring sessions and BJJ progress!',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { 
-                      text: 'Upgrade to PRO', 
-                      onPress: () => navigation.navigate('Paywall')
-                    }
-                  ]
-                );
-                return;
-              }
-              addSparringSession();
-            }}
-            className={`px-4 py-2 rounded-full ${checkSubscription(user?.prefs).hasAccess ? 'bg-[#b123c7]' : 'bg-gray-600'}`}
-            disabled={!checkSubscription(user?.prefs).hasAccess}
-          >
-            <Text className="text-white font-lato-bold">
-              {checkSubscription(user?.prefs).hasAccess 
-                ? (trainingType === 'COMP' ? '+ Add Match' : '+ Add Sparring') 
-                : '+ Add (PRO)'}
-            </Text>
-          </TouchableOpacity>
+             <Text className="text-gray-500 text-xs font-bold mb-3">KEY LEARNINGS</Text>
+             <Controller
+                control={control}
+                name="reflection"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    className="text-gray-300 font-lato text-base leading-6"
+                    value={value}
+                    onChangeText={onChange}
+                    multiline
+                    placeholder="What did you learn today?"
+                    placeholderTextColor="#64748b"
+                    scrollEnabled={false}
+                    style={{ minHeight: 80 }}
+                  />
+                )}
+             />
+          </View>
         </View>
 
-        {sparringSessions.map((session, index) => (
-          trainingType === 'COMP' ? (
-            <MatchTile
-              key={index}
-              number={session.sparring_number}
-              result={session.result}
-              method={session.method}
-              points_my={session.points_my}
-              points_opp={session.points_opp}
-              stage={session.stage}
-              notes={session.notes}
-              submissions_list={typeof session.submissions_list === 'string' ? session.submissions_list : JSON.stringify(session.submissions_list || [])}
-              sweeps_list={typeof session.sweeps_list === 'string' ? session.sweeps_list : JSON.stringify(session.sweeps_list || [])}
-              positions_list={typeof session.positions_list === 'string' ? session.positions_list : JSON.stringify(session.positions_list || [])}
-              onUpdate={(updates) => updateSparringSession(index, updates)}
-              onDelete={() => deleteSparringSession(index)}
-            />
-          ) : (
-            <SparringTile
-              key={index}
-              number={session.sparring_number}
-              submissionGiven={session.submission_given}
-              submissionReceived={session.submission_received}
-              submissionsList={typeof session.submissions_list === 'string' 
-                ? JSON.parse(session.submissions_list || '[]') 
-                : session.submissions_list || []}
-              notes={session.notes}
-              partner_name={session.partner_name}
-              sweeps_list={session.sweeps_list}
-              positions_list={session.positions_list}
-              onUpdate={(updates) => {
-                // Handle submissionsList format correctly
-                const formattedUpdates: any = { ...updates };
-                
-                if (updates.submissionsList !== undefined) {
-                  formattedUpdates.submissions_list = 
-                    typeof updates.submissionsList === 'string'
-                      ? updates.submissionsList
-                      : JSON.stringify(updates.submissionsList || []);
-                  delete formattedUpdates.submissionsList;
-                }
-                
-                updateSparringSession(index, formattedUpdates);
-              }}
-              onDelete={() => deleteSparringSession(index)}
-            />
-          )
-        ))}
+        {/* Sparring Section (Monetized) */}
+        <View className="mb-8">
+           <View className="flex-row justify-between items-center mb-4 px-2">
+              <Text className="text-white text-xl font-bebas tracking-wide">SPARRING LOGS</Text>
+              <TouchableOpacity
+                onPress={() => {
+                   if (hasAccess) {
+                     addSparringSession();
+                   } else {
+                     Alert.alert(
+                       'Sparring Locked 🔒', 
+                       'Tracking detail sparring rounds requires a PRO subscription.',
+                       [
+                         { text: 'Cancel', style: 'cancel' },
+                         { text: 'View Plans', onPress: () => navigation.navigate('Paywall') }
+                       ]
+                     );
+                   }
+                }}
+                className="bg-white/10 px-4 py-2 rounded-full"
+              >
+                 <Text className="text-white font-bold text-xs">+ ADD ROUND</Text>
+              </TouchableOpacity>
+           </View>
 
-        {sparringSessions.length === 0 && (
-          <View className="bg-white/5 p-8 rounded-xl border border-dashed border-white/20">
-            <Text className="text-gray-400 text-center font-lato">
-              {trainingType === 'COMP' ? 'No matches logged' : 'No sparrings yet'}
-            </Text>
-            <Text className="text-gray-500 text-center text-sm mt-2 font-lato">
-              {trainingType === 'COMP' ? 'Add your first match result' : 'Add your first sparring'}
-            </Text>
-          </View>
-        )}
-      </View>
+           {/* Sparring List Rendering (Existing Logic) */}
+           {sparringSessions.map((session, index) => (
+              trainingType === 'COMP' ? (
+                <MatchTile 
+                   key={index} 
+                   number={session.sparring_number}
+                   result={session.result}
+                   method={session.method}
+                   points_my={session.points_my}
+                   points_opp={session.points_opp}
+                   stage={session.stage}
+                   notes={session.notes}
+                   submissions_list={typeof session.submissions_list === 'string' ? session.submissions_list : JSON.stringify(session.submissions_list || [])}
+                   sweeps_list={typeof session.sweeps_list === 'string' ? session.sweeps_list : JSON.stringify(session.sweeps_list || [])}
+                   positions_list={typeof session.positions_list === 'string' ? session.positions_list : JSON.stringify(session.positions_list || [])}
+                   onUpdate={(updates) => updateSparringSession(index, updates)}
+                   onDelete={() => deleteSparringSession(index)}
+                />
+              ) : (
+                <SparringTile
+                   key={index}
+                   number={session.sparring_number}
+                   submissionGiven={session.submission_given}
+                   submissionReceived={session.submission_received}
+                   submissionsList={typeof session.submissions_list === 'string' ? JSON.parse(session.submissions_list || '[]') : session.submissions_list || []}
+                   notes={session.notes}
+                   partner_name={session.partner_name}
+                   sweeps_list={session.sweeps_list}
+                   positions_list={session.positions_list}
+                   onUpdate={(updates) => {
+                     const formattedUpdates: any = { ...updates };
+                     if (updates.submissionsList !== undefined) {
+                       formattedUpdates.submissions_list = typeof updates.submissionsList === 'string' ? updates.submissionsList : JSON.stringify(updates.submissionsList || []);
+                       delete formattedUpdates.submissionsList;
+                     }
+                     updateSparringSession(index, formattedUpdates);
+                   }}
+                   onDelete={() => deleteSparringSession(index)}
+                /> 
+              )
+           ))}
+           
+           {sparringSessions.length === 0 && (
+             <View className="bg-white/5 border border-dashed border-white/10 rounded-xl p-6 items-center">
+                <Text className="text-gray-500 text-sm">No sparring rounds recorded</Text>
+             </View>
+           )}
+        </View>
 
-      {/* Save/Update Button - Prominent */}
-      <View className="px-4 pb-6">
-        {loading ? (
-          <View className="bg-bjj-purple/50 px-6 py-4 rounded-xl items-center">
-            <ActivityIndicator size="small" color="#fff" />
-          </View>
-        ) : (
-          <TouchableOpacity 
-            className="bg-bjj-purple px-6 py-4 rounded-xl items-center"
-            style={{
-              shadowColor: '#8b5cf6',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.4,
-              shadowRadius: 8,
-              elevation: 8,
-            }}
-            onPress={() => {
-              haptics.heavy();
-              handleSubmit(onSubmit)();
-            }}
+        {/* Submit Button */}
+        <TouchableOpacity 
+            className="bg-bjj-purple w-full py-4 rounded-xl items-center shadow-lg shadow-purple-500/30"
+            onPress={handleSubmit(onSubmit)}
             disabled={loading}
-            activeOpacity={0.8}
           >
-            <Text className="text-white font-montserrat text-base font-bold">
-              {isEditing ? 'Update Training' : 'Save Training'}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      </View>
+            {loading ? <ActivityIndicator color="#fff" /> : (
+              <Text className="text-white font-bold text-lg tracking-wide">
+                {isEditing ? 'UPDATE SESSION' : 'COMPLETE SESSION'}
+              </Text>
+            )}
+       </TouchableOpacity>
 
-      {/* Success Toast - Professional Design */}
+      </View>
+      <View style={{ height: 100 }} /> 
+      </ScrollView>
+
+      {/* Success Toast */}
       {showSuccessToast && (
-        <View 
-          style={{
-            position: 'absolute',
-            bottom: 100,
-            left: 20,
-            right: 20,
-            zIndex: 1000,
-          }}
-        >
-          <View className="bg-green-500/95 backdrop-blur-xl rounded-2xl p-4 shadow-2xl border border-green-400/20">
-            <View className="flex-row items-center gap-3">
-              <View className="bg-white/20 w-12 h-12 rounded-full items-center justify-center">
-                <CheckCircle size={24} color="#fff" strokeWidth={3} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-white font-montserrat font-bold text-lg">
-                  Training Added! 🥋
-                </Text>
-                <Text className="text-white/90 font-lato text-sm mt-1">
-                  Your progress has been saved
-                </Text>
-              </View>
+         <View style={{ position: 'absolute', bottom: 50, alignSelf: 'center' }}>
+            <View className="bg-green-500/90 px-6 py-3 rounded-full shadow-xl">
+               <Text className="text-white font-bold">Session Saved Successfully! 🥋</Text>
             </View>
-          </View>
-        </View>
+         </View>
       )}
-     </ScrollView>
+
     </KeyboardAvoidingView>
   );
 }

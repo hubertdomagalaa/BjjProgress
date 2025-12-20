@@ -9,8 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import { getSparringsForTraining } from '../lib/sparring';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList, TrainingLog } from '../types';
-import { TrendingUp, LogOut, Plus, Calendar, Trash2, BarChart3, Settings, Users } from 'lucide-react-native';
-import { getSubscriptionStatus, SubscriptionInfo, checkSubscription, getTrialDaysRemaining, isTrialActive } from '../utils/subscription';
+import { TrendingUp, LogOut, Plus, Calendar, Trash2, BarChart3, Settings, Users, Crown } from 'lucide-react-native';
+import { usePurchases } from '../context/PurchasesContext';
 import { haptics } from '../utils/haptics';
 import { shadows } from '../styles/shadows';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,6 +28,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 export default function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { isPro } = usePurchases();
   const queryClient = useQueryClient();
   
   const { data: logs = [], isLoading: loading, refetch, isRefetching: refreshing } = useQuery({
@@ -50,13 +51,6 @@ export default function HomeScreen({ navigation }: Props) {
     enabled: !!user,
     staleTime: 60000, // 1 minute - reduces unnecessary refetches for better performance
   });
-  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo>({
-    isPremium: false,
-    isTrial: false,
-    daysLeft: 0,
-    message: 'Free Plan',
-    tier: 'free',
-  });
   const [belt, setBelt] = useState<BeltLevel>('white');
   const [stripes, setStripes] = useState<Stripes>(0);
   // PRO Modal removed for free launch - subscription features disabled
@@ -75,12 +69,9 @@ export default function HomeScreen({ navigation }: Props) {
     setAlert({ visible: true, title, message, type, onConfirm: undefined, confirmText: 'OK' });
   };
 
-  // Update subscription info when user changes
+  // Update user belt info when user changes
   useEffect(() => {
     if (user) {
-      const info = getSubscriptionStatus(user);
-      setSubscriptionInfo(info);
-      
       // Load belt from user preferences
       if (user.prefs) {
         const prefs = user.prefs as any; // Type assertion to avoid TS errors
@@ -334,91 +325,59 @@ export default function HomeScreen({ navigation }: Props) {
           </TouchableOpacity>
       </View>
 
-      {/* Trial Countdown or Upgrade Banner (for non-PRO users only) */}
-      {!checkSubscription(user?.prefs).isPro && (
-        <>
-          {/* Show trial countdown if user has an active trial */}
-          {isTrialActive(user?.prefs) && (
-            <View className="mb-4 bg-blue-500/20 border border-blue-500/50 rounded-xl p-4">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                  <Text className="text-blue-400 font-inter-bold text-base mb-1" adjustsFontSizeToFit numberOfLines={2}>
-                    {t('home.trial_active', { days: getTrialDaysRemaining((user?.prefs as any)?.trial_end_date), plural: getTrialDaysRemaining((user?.prefs as any)?.trial_end_date) !== 1 ? 's' : '' })}
-                  </Text>
-                  <Text className="text-gray-300 font-inter text-sm" adjustsFontSizeToFit numberOfLines={2}>
-                    {t('home.trial_message')}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Paywall')}
-                className="bg-blue-500 rounded-lg py-3 mt-3"
-                activeOpacity={0.8}
-                accessibilityLabel={t('home.upgrade_to_pro')}
-                accessibilityRole="button"
-              >
-                <Text className="text-white font-inter-bold text-center">
-                  {t('home.upgrade_to_pro')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+      {/* Upgrade Banner (for non-PRO users only) */}
+      {!isPro && (
+        <TouchableOpacity 
+          className="mb-8 rounded-2xl overflow-hidden"
+          style={{
+            backgroundColor: '#1e293b',
+            shadowColor: '#a855f7',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 12,
+            elevation: 8,
+            borderWidth: 1,
+            borderColor: 'rgba(168, 85, 247, 0.2)'
+          }}
+          onPress={() => navigation.navigate('Paywall')}
+          activeOpacity={0.9}
+          accessibilityLabel={t('home.upgrade_to_pro')}
+          accessibilityRole="button"
+        >
+          <LinearGradient
+            colors={['rgba(88, 28, 135, 0.4)', 'rgba(30, 58, 138, 0.4)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            className="absolute inset-0"
+          />
           
-          {/* Show upgrade banner only if trial expired or no trial */}
-          {!isTrialActive(user?.prefs) && (
-            <TouchableOpacity 
-              className="mb-8 rounded-2xl overflow-hidden"
-              style={{
-                backgroundColor: '#1e293b',
-                shadowColor: '#a855f7',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.2,
-                shadowRadius: 12,
-                elevation: 8,
-                borderWidth: 1,
-                borderColor: 'rgba(168, 85, 247, 0.2)'
-              }}
-              onPress={() => navigation.navigate('Paywall')}
-              activeOpacity={0.9}
-              accessibilityLabel={t('home.upgrade_to_pro')}
-              accessibilityRole="button"
-            >
-              <LinearGradient
-                colors={['rgba(88, 28, 135, 0.4)', 'rgba(30, 58, 138, 0.4)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                className="absolute inset-0"
-              />
-              
-              <View className="p-5 flex-row items-center justify-between">
-                <View className="flex-1 mr-4">
-                  <View className="flex-row items-center mb-1">
-                    <View className="bg-purple-500/30 p-2 rounded-full mr-3">
-                      <TrendingUp size={18} color="#a855f7" />
-                    </View>
-                    <View>
-                      <Text className="text-white font-lato text-base font-bold" adjustsFontSizeToFit numberOfLines={2}>
-                        {Platform.OS === 'ios' ? 'Launch Special: Free Access' : t('home.unlimited_tracking')}
-                      </Text>
-                      <View className="bg-yellow-500/20 px-2 py-0.5 rounded text-xs border border-yellow-500/30 self-start mt-1">
-                        <Text className="text-yellow-400 text-[10px] font-bold">{t('home.recommended')}</Text>
-                      </View>
-                    </View>
-                  </View>
-                  <Text className="text-gray-300 font-lato text-xs leading-4 mt-2" adjustsFontSizeToFit numberOfLines={2}>
-                    {Platform.OS === 'ios' ? 'Enjoy all PRO features for free!' : t('home.unlimited_desc')}
-                  </Text>
+          <View className="p-5 flex-row items-center justify-between">
+            <View className="flex-1 mr-4">
+              <View className="flex-row items-center mb-1">
+                <View className="bg-purple-500/30 p-2 rounded-full mr-3">
+                  <Crown size={18} color="#a855f7" />
                 </View>
-                
-                <View className="bg-white px-4 py-2.5 rounded-xl shadow-lg">
-                  <Text className="text-purple-900 font-lato-bold text-xs">
-                    {Platform.OS === 'ios' ? 'View' : t('home.upgrade_btn')}
+                <View>
+                  <Text className="text-white font-lato text-base font-bold" adjustsFontSizeToFit numberOfLines={2}>
+                    Unlock PRO Features
                   </Text>
+                  <View className="bg-yellow-500/20 px-2 py-0.5 rounded text-xs border border-yellow-500/30 self-start mt-1">
+                    <Text className="text-yellow-400 text-[10px] font-bold">{t('home.recommended')}</Text>
+                  </View>
                 </View>
               </View>
-            </TouchableOpacity>
-          )}
-        </>
+              <Text className="text-gray-300 font-lato text-xs leading-4 mt-2" adjustsFontSizeToFit numberOfLines={2}>
+                Advanced stats, sparring analytics, and more!
+              </Text>
+            </View>
+            
+            <View className="bg-white px-4 py-2.5 rounded-xl shadow-lg">
+              <Text className="text-purple-900 font-lato-bold text-xs">
+                Upgrade
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
       )}
 
 

@@ -26,9 +26,24 @@ export default function Home() {
       {/* Hero Section */}
       <section className="px-6 pt-32 pb-20 text-center max-w-4xl mx-auto">
         <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
+          className="relative w-32 h-32 mx-auto mb-8 group"
+        >
+           <div className="absolute inset-0 bg-purple-500 rounded-3xl blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
+           <Image 
+            src="/app-icon.jpg" 
+            alt="BJJ Progress Logo" 
+            fill 
+            className="object-cover rounded-3xl relative z-10 border border-white/10 shadow-2xl" 
+          />
+        </motion.div>
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
           <div className="inline-block px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-purple-300 mb-6">
             PRO IS FREE FOR THE FIRST 1000 USERS
@@ -47,8 +62,13 @@ export default function Home() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-24">
-            <DownloadButton store="App Store" icon={<Download size={20} />} primary />
-            <DownloadButton store="Google Play" icon={<Download size={20} />} />
+            <DownloadButton 
+              store="App Store" 
+              icon={<Download size={20} />} 
+              primary 
+              href="https://apps.apple.com/us/app/bjjprogress/id6755962774"
+            />
+            {/* Google Play coming soon */}
           </div>
         </motion.div>
 
@@ -56,7 +76,7 @@ export default function Home() {
         <motion.div 
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
+          transition={{ delay: 0.4, duration: 0.8 }}
           className="relative mx-auto max-w-[280px] md:max-w-[320px]"
         >
           <PhoneFrame src="/screenshots/home-trainings.jpg" />
@@ -118,7 +138,7 @@ export default function Home() {
           </p>
           
           <a 
-            href="https://t.me/bjjprogress" 
+            href="https://t.me/BjjProgress" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold transition-all hover:scale-105"
@@ -166,14 +186,25 @@ function GalleryItem({ src, label, desc }: { src: string, label: string, desc: s
   );
 }
 
-function DownloadButton({ store, icon, primary }: { store: string, icon: React.ReactNode, primary?: boolean }) {
+function DownloadButton({ store, icon, primary, href }: { store: string, icon: React.ReactNode, primary?: boolean, href?: string }) {
+  const baseClasses = `
+    w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all active:scale-95
+    ${primary 
+      ? 'bg-white text-black hover:bg-gray-200' 
+      : 'bg-[#1e293b] text-white border border-white/10 hover:bg-[#2d3748]'}
+  `;
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={baseClasses}>
+        {icon}
+        <span>{store}</span>
+      </a>
+    );
+  }
+
   return (
-    <button className={`
-      w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-3 transition-all active:scale-95
-      ${primary 
-        ? 'bg-white text-black hover:bg-gray-200' 
-        : 'bg-[#1e293b] text-white border border-white/10 hover:bg-[#2d3748]'}
-    `}>
+    <button className={baseClasses}>
       {icon}
       <span>{store}</span>
     </button>

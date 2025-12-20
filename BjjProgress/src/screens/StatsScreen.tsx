@@ -14,7 +14,7 @@ import { Sweep } from '../constants/bjj-guards';
 import { PositionScore, POINT_POSITIONS } from '../constants/bjj-positions';
 import { haptics } from '../utils/haptics';
 import { shadows } from '../styles/shadows';
-import { checkSubscription, isTrialExpired } from '../utils/subscription';
+import { usePurchases } from '../context/PurchasesContext';
 import { MotiView } from 'moti';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 
@@ -36,10 +36,8 @@ export default function StatsScreen() {
   const [trainingType, setTrainingType] = useState<TrainingType>('ALL');
   const [sparringData, setSparringData] = useState<any[]>([]);
 
-  // Subscription check disabled for free launch - all users have access
-  // const { hasAccess } = checkSubscription(user?.prefs);
-  // const trialExpired = isTrialExpired(user?.prefs);
-  // const isBlocked = !hasAccess && trialExpired;
+  // Subscription Check via RevenueCat
+  const { isPro: hasAccess } = usePurchases();
 
   const fetchLogs = async () => {
     if (!user) return;
@@ -418,6 +416,41 @@ export default function StatsScreen() {
         </TouchableOpacity>
       </View>
 
+      {!hasAccess ? (
+        <View className="flex-1 items-center justify-center px-8 relative">
+           {/* Background Elements */}
+           <View className="absolute inset-0 opacity-20">
+              <View className="absolute top-20 left-10 bg-purple-500 w-32 h-32 rounded-full blur-3xl" />
+              <View className="absolute bottom-40 right-10 bg-blue-500 w-40 h-40 rounded-full blur-3xl" />
+           </View>
+           
+           <View className="bg-white/5 border border-white/10 p-8 rounded-3xl items-center w-full shadow-2xl">
+             <View className="bg-purple-500/20 p-6 rounded-full mb-6 ring-4 ring-purple-500/10">
+               <Trophy size={48} color="#a855f7" />
+             </View>
+             <Text className="text-white font-bebas text-3xl text-center mb-2 tracking-wide">
+               ADVANCED ANALYTICS
+             </Text>
+             <Text className="text-gray-400 text-center font-lato text-base mb-8 leading-6">
+               Unlock deep insights into your game. Visualize your win rates, favorite submissions, and guard retention stats.
+             </Text>
+             
+             <TouchableOpacity 
+               onPress={() => (navigation as any).navigate('Paywall')}
+               className="bg-purple-600 w-full py-4 rounded-xl items-center shadow-lg shadow-purple-500/30 active:bg-purple-700"
+             >
+               <Text className="text-white font-bold text-lg tracking-wide">UNLOCK PRO STATS</Text>
+             </TouchableOpacity>
+             
+             <TouchableOpacity 
+               onPress={() => navigation.goBack()}
+               className="mt-6 py-2"
+             >
+               <Text className="text-gray-500 font-bold text-sm">MAYBE LATER</Text>
+             </TouchableOpacity>
+           </View>
+        </View>
+      ) : (
       <ScrollView className="flex-1">
       <View className="px-4 pt-4">
         {/* Time Range Filter */}
@@ -892,6 +925,7 @@ export default function StatsScreen() {
         )}
       </View>
     </ScrollView>
+    )}
     </View>
   );
 };
